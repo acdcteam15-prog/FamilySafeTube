@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -70,6 +71,7 @@ class UpdateCheckWorker(
         val app = appContext.getString(R.string.app_name)
         val notification = NotificationCompat.Builder(appContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_update)
+            .setLargeIcon(BitmapFactory.decodeResource(appContext.resources, R.drawable.logo))
             .setContentTitle(
                 appContext.getString(if (ready) R.string.update_notif_ready_title else R.string.update_notif_available_title, app, info.versionName)
             )

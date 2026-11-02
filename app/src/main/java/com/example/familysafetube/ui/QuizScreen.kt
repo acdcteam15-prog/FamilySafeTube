@@ -438,6 +438,8 @@ internal fun RoundComplete(newSticker: QuizCard?, onAlbum: () -> Unit, onAgain: 
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+            AppLogo(Modifier.size(84.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 "⭐".repeat(QuizRules.SET_SIZE),
                 fontSize = 40.sp,

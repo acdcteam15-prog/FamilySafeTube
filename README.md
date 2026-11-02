@@ -1,5 +1,7 @@
 # FamilySafeTube
 
+<p align="center"><img src="docs/logo.png" width="160" alt="FamilySafeTube logo"></p>
+
 A parental-control media app for children (Android, Kotlin, Jetpack Compose). Content comes from Google Drive
 folders you control; the parent sets time limits, bedtime, a weekend schedule, and optional bonus time.
 

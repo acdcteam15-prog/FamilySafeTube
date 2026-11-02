@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -116,13 +118,17 @@ fun UpdatesDialog(onDismiss: () -> Unit) {
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text(
-                                stringResource(R.string.updates_current, stringResource(R.string.app_name), updates.currentVersion),
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(stringResource(R.string.updates_build, updates.currentBuild), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-                            Text(stringResource(R.string.updates_source, updates.repo), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            AppLogo(Modifier.size(56.dp))
+                            Spacer(Modifier.width(14.dp))
+                            Column {
+                                Text(
+                                    stringResource(R.string.updates_current, stringResource(R.string.app_name), updates.currentVersion),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(stringResource(R.string.updates_build, updates.currentBuild), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
+                                Text(stringResource(R.string.updates_source, updates.repo), color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                            }
                         }
                     }
 

@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -111,6 +113,7 @@ fun ParentGate(onSuccess: () -> Unit, onDismiss: () -> Unit) {
     when (stage) {
         GateStage.CHOICE -> AlertDialog(
             onDismissRequest = onDismiss,
+            icon = { AppLogo(Modifier.size(56.dp)) },
             title = { Text(stringResource(R.string.gate_title)) },
             text = {
                 Column {
@@ -281,7 +284,11 @@ fun SettingsDialog(
             color = MaterialTheme.colorScheme.surface
         ) {
             Column(Modifier.padding(20.dp)) {
-                Text(stringResource(R.string.settings_title), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    AppLogo(Modifier.size(36.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text(stringResource(R.string.settings_title), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
                 Spacer(Modifier.height(8.dp))
 
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {

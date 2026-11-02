@@ -371,6 +371,48 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import compose_check
 check("compose: `by` delegates have getValue/setValue imports; BoxWithConstraints sizes read in their own scope", compose_check.find(ROOT))
 
+# 12. Compose names used without an import (a real build failure class the plain Kotlin compiler cannot see without the Android SDK)
+import import_check
+check("compose: every layout/modifier/material name used is imported", import_check.find(ROOT))
+
+# 13. Launcher icon, logo and resources: layers exist, no duplicate resource names, PNGs are RGBA at the right size
+import struct
+problems = []
+RES = os.path.join(MAIN, "res")
+def png_info(path):
+    with open(path, "rb") as fh:
+        head = fh.read(33)
+    if head[:8] != b"\x89PNG\r\n\x1a\n": return None
+    w, h, depth, ctype = struct.unpack(">IIBB", head[16:26]); return w, h, ctype
+for xml in ("ic_launcher.xml", "ic_launcher_round.xml"):
+    p = os.path.join(RES, "mipmap-anydpi", xml)
+    if not os.path.exists(p): problems.append(f"mipmap-anydpi/{xml} is missing"); continue
+    for ref in re.findall(r'@drawable/(\w+)', read(p)):
+        if not glob.glob(os.path.join(RES, "drawable*", ref + ".*")): problems.append(f"{xml} refers to @drawable/{ref}, which does not exist")
+stems = {}
+for d in glob.glob(os.path.join(RES, "*")):
+    if not os.path.isdir(d): continue
+    for f in os.listdir(d):
+        stems.setdefault((os.path.basename(d), os.path.splitext(f)[0]), []).append(f)
+for (folder, stem), files in stems.items():
+    if len(files) > 1: problems.append(f"res/{folder}: duplicate resource '{stem}' ({', '.join(files)})")
+for layer in ("ic_launcher_foreground", "ic_launcher_background", "ic_launcher_monochrome", "logo"):
+    where = sorted({os.path.basename(os.path.dirname(f)) for f in glob.glob(os.path.join(RES, "drawable*", layer + ".*"))})
+    if len(where) != 1: problems.append(f"drawable '{layer}' must exist in exactly one folder (found in: {where or 'none'})")
+for rel, want in (("drawable-nodpi/ic_launcher_foreground.png", (432, 432)), ("drawable-nodpi/ic_launcher_monochrome.png", (432, 432))):
+    p = os.path.join(RES, rel); info = png_info(p) if os.path.exists(p) else None
+    if info is None: problems.append(f"res/{rel} is missing or not a PNG")
+    elif info[:2] != want or info[2] != 6: problems.append(f"res/{rel} must be {want[0]}x{want[1]} RGBA (is {info[0]}x{info[1]}, colour type {info[2]})")
+p = os.path.join(RES, "drawable-nodpi/logo.png"); info = png_info(p) if os.path.exists(p) else None
+if info is None or info[2] != 6: problems.append("res/drawable-nodpi/logo.png must be an RGBA PNG (transparent background)")
+for dens, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xxxhdpi", 192)):
+    for name in ("ic_launcher.png", "ic_launcher_round.png"):
+        p = os.path.join(RES, f"mipmap-{dens}", name); info = png_info(p) if os.path.exists(p) else None
+        if info is None or info[:2] != (n, n): problems.append(f"res/mipmap-{dens}/{name} must be {n}x{n}")
+if "AppLogo(" not in read(os.path.join(MAIN, "java/com/example/familysafetube/ui/HomeScreen.kt")):
+    problems.append("the home screen header must show the logo (AppLogo)")
+check("logo and launcher icon: layers, sizes, no duplicate resources", problems)
+
 print()
 if failures:
     print(f"{len(failures)} problem(s) found.")
