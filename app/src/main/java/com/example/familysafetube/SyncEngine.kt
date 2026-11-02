@@ -20,6 +20,11 @@ object SyncEngine {
         onProgress: (String) -> Unit,
         onComplete: (Boolean, String?) -> Unit
     ) {
+        if (!DriveAuth.isSignedIn()) {
+            onComplete(false, context.getString(R.string.sync_not_signed_in))
+            return
+        }
+
         val wifiOnly = AppGraph.settings.getOr(Keys.SYNC_WIFI_ONLY, false)
 
         if (wifiOnly && !isWifiConnected(context)) {

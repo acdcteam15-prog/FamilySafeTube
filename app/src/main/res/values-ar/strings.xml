@@ -112,7 +112,9 @@
     <string name="sync_connecting_drive">جارٍ الاتصال بـ Google Drive…</string>
     <string name="sync_scanning">جارٍ فحص Google Drive…</string>
     <string name="sync_downloading">جارٍ التنزيل…</string>
-    <string name="sync_no_key">❌ مفتاح Drive API مفقود — أضف DRIVE_API_KEY إلى local.properties</string>
+    <string name="sync_not_signed_in">🔑 لم يتم تسجيل الدخول إلى Google — للوالد: افتح الإعدادات › Google Drive</string>
+    <string name="sync_signin_again">🔑 انتهت صلاحية تسجيل الدخول — للوالد: افتح الإعدادات › Google Drive وسجّل الدخول من جديد</string>
+    <string name="sync_folders_missing">⚠️ مجلدات ناقصة في Drive: %1$s — افتح الإعدادات › Google Drive</string>
     <string name="sync_gave_up">❌ توقفت المزامنة بعد عدة محاولات</string>
     <string name="sync_failed_short">❌ فشلت المزامنة</string>
     <string name="sync_partial">⚠️ مزامنة جزئية — تعذّرت قراءة: %1$s</string>
@@ -309,4 +311,22 @@
     <string name="update_err_version">الملف الذي تم تنزيله بإصدار غير متوقع.</string>
     <string name="update_err_failed">لم ينجح التحديث.</string>
     <string name="update_err_install">تعذّر على أندرويد تثبيت التحديث.</string>
+    <string name="settings_drive_label">☁️  Google Drive</string>
+    <string name="drive_hint">يحتاج Drive إلى: المجلد Offline (الفيديوهات وYoutube.txt وsettings.json) وبداخله Images مع المجلدات Animals وLetters وOther وVeg&amp;fruits.</string>
+    <string name="drive_not_signed_in">لم يتم تسجيل الدخول</string>
+    <string name="drive_account">تم الدخول بحساب %1$s</string>
+    <string name="drive_sign_in">تسجيل الدخول بحساب Google</string>
+    <string name="drive_sign_out">تسجيل الخروج</string>
+    <string name="drive_check">فحص المجلدات</string>
+    <string name="drive_create">إنشاء المجلدات الناقصة</string>
+    <string name="drive_working">جارٍ العمل…</string>
+    <string name="drive_all_ok">✅ كل المجلدات موجودة</string>
+    <string name="drive_missing">⚠️ ناقص: %1$s</string>
+    <string name="drive_created">✅ تم إنشاء: %1$s</string>
+    <string name="drive_signed_in_msg">✅ تم الدخول بحساب %1$s</string>
+    <string name="drive_signed_out_msg">تم تسجيل الخروج</string>
+    <string name="drive_err">❌ %1$s</string>
+    <string name="drive_err_cancelled">تم إلغاء تسجيل الدخول</string>
+    <string name="drive_err_scope">لم يتم منح صلاحية Drive. سجّل الدخول من جديد واسمح بكل الصلاحيات المطلوبة.</string>
+    <string name="drive_err_need_signin">سجّل الدخول أولاً</string>
 </resources>

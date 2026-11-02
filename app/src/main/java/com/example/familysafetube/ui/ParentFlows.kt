@@ -61,6 +61,7 @@ import com.example.familysafetube.R
 import com.example.familysafetube.Schedule
 import com.example.familysafetube.SettingsForm
 import com.example.familysafetube.SettingsInput
+import com.example.familysafetube.DriveAuth
 import com.example.familysafetube.SyncWorker
 import com.example.familysafetube.UsageTracker
 import com.example.familysafetube.get
@@ -192,7 +193,8 @@ fun SettingsDialog(
     onClearStorage: () -> Unit,
     onDashboard: () -> Unit,
     onQuizEditor: () -> Unit,
-    onUpdates: () -> Unit
+    onUpdates: () -> Unit,
+    drive: DriveUi
 ) {
     val ctx = LocalContext.current
     val st = AppGraph.settings
@@ -209,6 +211,10 @@ fun SettingsDialog(
     var wifiOnly by remember { mutableStateOf(st.getOr(Keys.SYNC_WIFI_ONLY, false)) }
     var voice by remember { mutableStateOf(st.getOr(Keys.VOICE_OVER, true)) }
     var autoplay by remember { mutableStateOf(st.getOr(Keys.AUTOPLAY_NEXT, false)) }
+
+    var driveAccount by remember { mutableStateOf(DriveAuth.accountEmail()) }
+    var driveStatus by remember { mutableStateOf("") }
+    var driveBusy by remember { mutableStateOf(false) }
 
     var weekendOn by remember { mutableStateOf(st.getOr(Keys.WEEKEND_ENABLED, false)) }
     var wLimit by remember { mutableStateOf(st.getOr(Keys.WEEKEND_LIMIT, 60).toString()) }
@@ -306,6 +312,67 @@ fun SettingsDialog(
                     Field(vid, { vid = it }, R.string.settings_limit_videos, numeric = true)
                     Spacer(Modifier.height(8.dp))
                     Field(img, { img = it }, R.string.settings_limit_images, numeric = true)
+
+                    SectionTitle(R.string.settings_drive_label)
+                    Text(
+                        if (driveAccount.isBlank()) stringResource(R.string.drive_not_signed_in)
+                        else stringResource(R.string.drive_account, driveAccount),
+                        fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    if (driveAccount.isBlank()) {
+                        Button(
+                            enabled = !driveBusy,
+                            onClick = {
+                                driveBusy = true
+                                drive.driveSignIn { msg ->
+                                    driveBusy = false
+                                    driveAccount = DriveAuth.accountEmail()
+                                    driveStatus = msg
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.drive_sign_in)) }
+                    } else {
+                        OutlinedButton(
+                            enabled = !driveBusy,
+                            onClick = {
+                                driveBusy = true
+                                driveStatus = ctx.getString(R.string.drive_working)
+                                drive.driveCheck(false) { msg -> driveBusy = false; driveStatus = msg }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.drive_check)) }
+                        Spacer(Modifier.height(6.dp))
+                        OutlinedButton(
+                            enabled = !driveBusy,
+                            onClick = {
+                                driveBusy = true
+                                driveStatus = ctx.getString(R.string.drive_working)
+                                drive.driveCheck(true) { msg -> driveBusy = false; driveStatus = msg }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(stringResource(R.string.drive_create)) }
+                        Spacer(Modifier.height(6.dp))
+                        TextButton(
+                            enabled = !driveBusy,
+                            onClick = {
+                                drive.driveSignOut {
+                                    driveAccount = ""
+                                    driveStatus = ctx.getString(R.string.drive_signed_out_msg)
+                                }
+                            }
+                        ) { Text(stringResource(R.string.drive_sign_out)) }
+                    }
+                    if (driveStatus.isNotBlank()) {
+                        Text(driveStatus, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                    }
+                    Text(
+                        stringResource(R.string.drive_hint),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
 
                     SectionTitle(R.string.settings_sync_time)
                     Field(syncTime, { syncTime = it }, R.string.settings_time_hint)

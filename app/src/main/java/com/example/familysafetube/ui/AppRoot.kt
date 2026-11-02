@@ -26,7 +26,7 @@ private sealed interface Flow {
 private enum class GateNext { SETTINGS, RESET_TIMER, UPDATES }
 
 /** Everything the Activity does for the UI (intents, toasts that need Policy, sync). */
-interface HomeActions {
+interface HomeActions : DriveUi {
     fun sync()
     /** Returns true if the mode may open now (otherwise a toast was shown and a tamper attempt logged). */
     fun tryOpen(category: String): Boolean
@@ -92,7 +92,8 @@ fun AppRoot(
             onClearStorage = { flow = Flow.ClearConfirm },
             onDashboard = { flow = Flow.Dashboard },
             onQuizEditor = { flow = Flow.QuizEditor },
-            onUpdates = { flow = Flow.Updates(fromSettings = true) }
+            onUpdates = { flow = Flow.Updates(fromSettings = true) },
+            drive = actions
         )
 
         Flow.PinMenu -> PinMenuDialog(

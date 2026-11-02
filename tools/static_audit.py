@@ -183,7 +183,7 @@ for v in re.findall(r"version\.ref\s*=\s*\"([^\"]+)\"", catalog):
 check("version catalog aliases resolve", problems)
 
 # 6. Every file the build reads exists
-problems = [f"missing {p}" for p in ("app/proguard-rules.pro", "gradle/wrapper/gradle-wrapper.properties", "local.properties.example")
+problems = [f"missing {p}" for p in ("app/proguard-rules.pro", "gradle/wrapper/gradle-wrapper.properties")
             if not os.path.exists(os.path.join(ROOT, p))]
 check("required build files present", problems)
 
@@ -271,8 +271,8 @@ for name in ("build.yml", "release.yml"):
         problems.append(f"{name}: needs a 'chmod +x gradlew' step (Windows cannot set the executable bit)")
     if not any("testDebugUnitTest" in str(st.get("run", "")) for st in steps):
         problems.append(f"{name}: unit tests are not run")
-    if "DRIVE_API_KEY" not in wf_text[name]:
-        problems.append(f"{name}: the Drive API key (secrets.DRIVE_API_KEY) is not passed to the build")
+    if "DRIVE_API_KEY" in wf_text[name]:
+        problems.append(f"{name}: still passes DRIVE_API_KEY (the app signs in with Google now; no API key)")
 rel = wf_text.get("release.yml", "")
 parser_src = read(os.path.join(MAIN, "java/com/example/familysafetube/update/UpdateParser.kt"))
 rx = re.search(r'APK_NAME\s*=\s*Regex\("""(.+?)""",\s*RegexOption\.IGNORE_CASE', parser_src)
@@ -296,8 +296,15 @@ used_secrets = set(re.findall(r"secrets\.(\w+)", rel)) - {"GITHUB_TOKEN"}
 set_secrets = set(re.findall(r"Set-Secret\s+'(\w+)'", ps1))
 if used_secrets - set_secrets:
     problems.append(f"release.yml uses secrets the wizard never saves: {sorted(used_secrets - set_secrets)}")
-if "DRIVE_API_KEY" not in app_gradle or "System.getenv(\"DRIVE_API_KEY\")" not in app_gradle:
-    problems.append("app/build.gradle.kts must read DRIVE_API_KEY from the environment")
+if "DRIVE_API_KEY" in app_gradle:
+    problems.append("app/build.gradle.kts must not read or embed a Drive API key (sign-in replaced it)")
+if "play.services.auth" not in app_gradle:
+    problems.append("app/build.gradle.kts lacks the Google sign-in dependency (play-services-auth)")
+_all_kt = "\n".join(read(f) for f in glob.glob(os.path.join(MAIN, "java/**/*.kt"), recursive=True))
+if "DRIVE_API_KEY" in _all_kt or "&key=" in _all_kt:
+    problems.append("Kotlin sources still use a Drive API key; every Drive call must carry the user's OAuth token")
+if "alt=media" not in _all_kt or "Bearer" not in _all_kt:
+    problems.append("Drive downloads must use the authorised API (alt=media + Bearer token)")
 dep = read(os.path.join(ROOT, ".github/dependabot.yml")) if os.path.exists(os.path.join(ROOT, ".github/dependabot.yml")) else ""
 if "package-ecosystem: gradle" not in dep or "package-ecosystem: github-actions" not in dep:
     problems.append(".github/dependabot.yml must cover gradle and github-actions")
@@ -319,7 +326,7 @@ if '"${context.packageName}.fileprovider"' not in code:
 fp = read(os.path.join(MAIN, "res/xml/file_paths.xml"))
 if 'path="updates/"' not in fp or 'File(context.cacheDir, "updates")' not in code:
     problems.append("file_paths.xml cache path 'updates/' and the code's cache folder 'updates' must match")
-for field in ("UPDATE_REPO", "DRIVE_API_KEY"):
+for field in ("UPDATE_REPO",):
     if f'buildConfigField("String", "{field}"' not in app_gradle:
         problems.append(f"app/build.gradle.kts lacks the BuildConfig field {field}")
 vp = read(os.path.join(ROOT, "version.properties"))

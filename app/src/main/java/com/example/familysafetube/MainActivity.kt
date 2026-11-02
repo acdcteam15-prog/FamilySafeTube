@@ -35,6 +35,7 @@ import com.example.familysafetube.ui.HomeActions
 class MainActivity : AppCompatActivity(), HomeActions {
 
     private val viewModel: MainViewModel by viewModels()
+    private val drive = DriveAccessFlow(this) { sync() }   // Google sign-in for Drive (see DriveAccessFlow)
     private val tickHandler = Handler(Looper.getMainLooper())
 
     /** True when the update notification was tapped: the UI then asks for the parental PIN and opens the update screen. */
@@ -194,6 +195,11 @@ class MainActivity : AppCompatActivity(), HomeActions {
     }
 
     override fun settingsSaved() = viewModel.refresh()
+
+    // ── Google Drive (delegated to DriveAccessFlow) ───────────────────────────
+    override fun driveSignIn(done: (String) -> Unit) = drive.driveSignIn(done)
+    override fun driveSignOut(done: () -> Unit) = drive.driveSignOut(done)
+    override fun driveCheck(create: Boolean, done: (String) -> Unit) = drive.driveCheck(create, done)
 
     // ── Battery optimization ──────────────────────────────────────────────────
     @Suppress("BatteryLife")
