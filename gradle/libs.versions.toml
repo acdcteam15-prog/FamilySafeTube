@@ -16,7 +16,7 @@ media3 = "1.11.1"
 okhttp = "5.5.1"
 glide = "5.0.9"
 material = "1.14.0"          # Google sign-in's own screens use Theme.MaterialComponents; its resources must exist at build time
-playServicesAuth = "21.4.0"   # Google sign-in / Drive authorization (AuthorizationClient)
+playServicesAuth = "22.0.0"   # Google sign-in / Drive authorization (AuthorizationClient)
 coroutines = "1.11.0"
 junit = "4.13.2"
 
