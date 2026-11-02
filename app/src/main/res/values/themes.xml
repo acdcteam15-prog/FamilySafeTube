@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- All screens are Jetpack Compose; this theme only gives the windows and system bars their colours.
-         Plain AppCompat is enough, so the Material Components library is not a dependency. -->
+         Plain AppCompat is enough for our own windows; the Material Components library is only there because Google's sign-in screens need its theme. -->
     <style name="Theme.FamilySafeTube" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="colorPrimary">@color/accent_blue</item>
         <item name="android:statusBarColor">@color/bg_deep</item>
