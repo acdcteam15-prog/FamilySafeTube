@@ -27,7 +27,10 @@ class DriveAuthException(message: String) : Exception(message)
 object DriveAuth {
     const val SCOPE_READ = "https://www.googleapis.com/auth/drive.readonly"
     const val SCOPE_FILE = "https://www.googleapis.com/auth/drive.file"
-    private val SCOPES = listOf(Scope(SCOPE_READ), Scope(SCOPE_FILE))
+    // "email" is needed so Google tells us WHICH account signed in (shown in Settings, used for silent background tokens).
+    private val SCOPES = listOf(Scope(SCOPE_READ), Scope(SCOPE_FILE), Scope("email"))
+    /** Stored when Google does not return an address; sync then lets Google pick the already-authorised account. */
+    const val UNKNOWN_ACCOUNT = "Google account"
 
     fun accountEmail(): String = AppGraph.settings.getOr(Keys.DRIVE_ACCOUNT, "")
     fun isSignedIn(): Boolean = accountEmail().isNotBlank()
@@ -36,7 +39,7 @@ object DriveAuth {
 
     private fun request(email: String): AuthorizationRequest = AuthorizationRequest.builder()
         .setRequestedScopes(SCOPES)
-        .apply { if (email.isNotBlank()) setAccount(Account(email, "com.google")) }
+        .apply { if (email.contains("@")) setAccount(Account(email, "com.google")) }
         .build()
 
     /** For the UI. The result may need the consent screen ([AuthorizationResult.hasResolution]). */
@@ -48,8 +51,10 @@ object DriveAuth {
 
     fun hasReadAccess(r: AuthorizationResult): Boolean = SCOPE_READ in r.grantedScopes
 
+    /** Always marks the user as signed in, even when Google gave no e-mail address. */
     fun rememberAccount(email: String?) {
-        if (!email.isNullOrBlank()) AppGraph.settings.edit { it[Keys.DRIVE_ACCOUNT] = email }
+        val value = if (email.isNullOrBlank()) UNKNOWN_ACCOUNT else email
+        AppGraph.settings.edit { it[Keys.DRIVE_ACCOUNT] = value }
     }
 
     fun forgetAccount() {
