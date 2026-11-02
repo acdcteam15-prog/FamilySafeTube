@@ -1,0 +1,6 @@
+## Only needed for builds on your own PC. The GitHub build gets the key from the wizard (START-HERE.bat, menu 4).
+## Copy to local.properties (git-ignored).
+## Create a NEW Drive API key in Google Cloud Console and restrict it:
+##   - API restriction: Google Drive API only
+##   - Application restriction: Android apps -> package com.example.familysafetube + your SHA-1
+DRIVE_API_KEY=PUT_YOUR_NEW_KEY_HERE
