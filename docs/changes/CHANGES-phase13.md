@@ -48,3 +48,9 @@ short filtered `build-error.txt` on failure; menu entry to follow a running buil
 - No Gradle build, so the first real compile is the GitHub build. That includes all earlier phases, which have never been compiled either.
 - The wizard was parse-checked, not run on Windows; the `gh` and `git` steps are the template's proven ones.
 - The installer flow, the notification and the Compose screens are untested on a device.
+
+## First GitHub build (real compiler) - fixed
+The first build reached `compileDebugKotlin` and reported 3 errors in 2 files, both Compose-specific (invisible without the Android SDK):
+- `HomeScreen.kt`: `val x by animateFloatAsState(...)` lacked `import androidx.compose.runtime.getValue`.
+- `MatchScreen.kt`: `maxWidth` / `maxHeight` of `BoxWithConstraints` were read inside a nested `Row`; they are now captured first.
+The audit has a new check for both classes (`tools/compose_check.py`); it finds no other instance in the project.

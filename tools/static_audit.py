@@ -366,6 +366,11 @@ for f in glob.glob(os.path.join(ROOT, "**/*"), recursive=True):
             problems.append(f"leftover template name 'Youtubly' in {os.path.relpath(f, ROOT)}")
 check("wizard and repository hygiene", problems)
 
+# 11. Compose mistakes the plain Kotlin compiler cannot see without the Android SDK (found by real GitHub builds)
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import compose_check
+check("compose: `by` delegates have getValue/setValue imports; BoxWithConstraints sizes read in their own scope", compose_check.find(ROOT))
+
 print()
 if failures:
     print(f"{len(failures)} problem(s) found.")

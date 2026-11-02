@@ -1,0 +1,53 @@
+=== KEY LINES ===
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/HomeScreen.kt:261:18 Type 'State<Float>' has no method 'getValue(Nothing?, KProperty0<*>)', so it cannot serve as a delegate.
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/MatchScreen.kt:201:37 'val maxWidth: Dp' cannot be called in this context with an implicit receiver. Use an explicit receiver if necessary.
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/MatchScreen.kt:201:65 'val maxHeight: Dp' cannot be called in this context with an implicit receiver. Use an explicit receiver if necessary.
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin' (registered by plugin 'com.***.internal.application').
+       Kotlin compiler error
+> Task :app:compileDebugKotlin FAILED
+BUILD FAILED in 30s
+##[error]Process completed with exit code 1.
+
+=== LAST LINES ===
+> Task :app:packageDebugResources FROM-CACHE
+> Task :app:processDebugNavigationResources FROM-CACHE
+> Task :app:parseDebugLocalResources FROM-CACHE
+> Task :app:generateDebugRFile FROM-CACHE
+> Task :app:javaPreCompileDebug FROM-CACHE
+> Task :app:mapDebugSourceSetPaths
+> Task :app:checkDebugAarMetadata
+> Task :app:compileDebugNavigationResources FROM-CACHE
+> Task :app:mergeDebugResources FROM-CACHE
+> Task :app:createDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDebug FROM-CACHE
+> Task :app:processDebugMainManifest FROM-CACHE
+> Task :app:processDebugManifest FROM-CACHE
+> Task :app:processDebugManifestForPackage FROM-CACHE
+> Task :app:processDebugResources FROM-CACHE
+> Task :app:preDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDebugUnitTest FROM-CACHE
+> Task :app:compileDebugKotlin
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/HomeScreen.kt:261:18 Type 'State<Float>' has no method 'getValue(Nothing?, KProperty0<*>)', so it cannot serve as a delegate.
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/MatchScreen.kt:201:37 'val maxWidth: Dp' cannot be called in this context with an implicit receiver. Use an explicit receiver if necessary.
+e: file:///home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/MatchScreen.kt:201:65 'val maxHeight: Dp' cannot be called in this context with an implicit receiver. Use an explicit receiver if necessary.
+FAILURE: Build failed with an exception.
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin' (registered by plugin 'com.***.internal.application').
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.btapi.BuildToolsApiCompilationWork
+   > Kotlin compiler: DELEGATE_SPECIAL_FUNCTION_MISSING
+       Kotlin compiler error
+         Type 'State<Float>' has no method 'getValue(Nothing?, KProperty0<*>)', so it cannot serve as a delegate.
+         Location: /home/runner/work/FamilySafeTube/FamilySafeTube/app/src/main/java/com/example/familysafetube/ui/HomeScreen.kt:261
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Task :app:compileDebugKotlin FAILED
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+BUILD FAILED in 30s
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run_5-1793585669904.json
+[Incubating] Problems report is available at: file:///home/runner/work/FamilySafeTube/FamilySafeTube/build/reports/problems/problems-report.html
+19 actionable tasks: 4 executed, 15 from cache
+##[error]Process completed with exit code 1.

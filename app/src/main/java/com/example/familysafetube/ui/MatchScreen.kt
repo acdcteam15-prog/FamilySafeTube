@@ -179,6 +179,9 @@ fun MatchScreen(cards: List<QuizCard>, onExit: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding().padding(16.dp)) {
+            // Read the available space here: inside the Column/Row below these members are out of scope.
+            val availableWidthDp = maxWidth.value
+            val availableHeightDp = maxHeight.value
             val current = state
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -198,7 +201,7 @@ fun MatchScreen(cards: List<QuizCard>, onExit: () -> Unit) {
                 if (current != null) {
                     val n = current.board.pairs.size
                     val gap = 12f
-                    val side = min((maxWidth.value - gap) / 2, (maxHeight.value - MATCH_CHROME_DP - gap * (n - 1)) / n).coerceIn(96f, 300f)
+                    val side = min((availableWidthDp - gap) / 2, (availableHeightDp - MATCH_CHROME_DP - gap * (n - 1)) / n).coerceIn(96f, 300f)
                     Spacer(Modifier.height(12.dp))
                     Row(
                         Modifier.fillMaxWidth(),
