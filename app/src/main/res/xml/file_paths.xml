@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<paths>
-    <!-- Only this cache sub-folder can be shared with the camera app. -->
-    <cache-path name="quiz_capture" path="quiz_capture/" />
-    <!-- Downloaded app updates (UpdateRepository): handed to the installer if the session fallback is needed. -->
-    <cache-path name="updates" path="updates/" />
-</paths>
