@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher icon background: the soft sky blue of the logo artwork, so the logo sits on its own colour. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient
+        android:angle="270"
+        android:startColor="#FFCFEFFE"
+        android:endColor="#FFB7E4FC" />
+</shape>
