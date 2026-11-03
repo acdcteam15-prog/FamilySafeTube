@@ -36,9 +36,6 @@ object Keys {
     val WEEKEND_BED_START = stringPreferencesKey("weekend_bedtime_start")
     val WEEKEND_BED_END   = stringPreferencesKey("weekend_bedtime_end")
 
-    // Google account used for Drive (empty = signed out)
-    val DRIVE_ACCOUNT     = stringPreferencesKey("drive_account")
-
     // Remote settings from Drive (settings.json)
     val REMOTE_ENABLED    = booleanPreferencesKey("remote_settings_enabled")
     val REMOTE_LAST_OK    = booleanPreferencesKey("remote_last_ok")
@@ -53,6 +50,9 @@ object Keys {
     val QUIZ_PHONICS      = booleanPreferencesKey("quiz_phonics")          // include letter <-> word questions
     val MATCH_ENABLED     = booleanPreferencesKey("match_enabled")         // show the matching game
     val QUIZ_STICKERS_JSON = stringPreferencesKey("quiz_stickers_json")    // collected sticker ids, in order
+    val MANUAL_LOCK       = booleanPreferencesKey("manual_lock")           // the parent pressed "Lock now"
+    val BEDTIME_EXTENSION_UNTIL = longPreferencesKey("bedtime_extension_until_ms")   // bedtime lifted by the parent until then
+    val QUIZ_ROUNDS_LIMIT = intPreferencesKey("quiz_rounds_limit")         // finished quiz rounds allowed per day, 0 = no limit
     val QUIZ_DECKS        = stringPreferencesKey("quiz_decks")             // enabled built-in decks, e.g. "arletters,numbers"
     val QUIZ_PRAISE_JSON  = stringPreferencesKey("quiz_praise_json")       // the parent's praise-voice clips
     val QUIZ_FAMILY_JSON  = stringPreferencesKey("quiz_family_json")       // the parent's photo cards

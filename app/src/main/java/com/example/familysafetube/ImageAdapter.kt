@@ -55,7 +55,9 @@ class ImageAdapter(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            scaleType  = ImageView.ScaleType.CENTER_CROP
+            // FIT_XY: the WHOLE picture is stretched over the whole screen (it is blurred, so the stretch is invisible).
+            // CENTER_CROP would keep only a magnified strip from the middle (just the "face" of a photo).
+            scaleType  = ImageView.ScaleType.FIT_XY
             alpha      = 0.35f
             // Android 12+: real GPU blur. Older phones show the tiny picture below scaled up, which is soft anyway.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -191,7 +193,8 @@ class ImageAdapter(
                 .replaceFirstChar { it.uppercase() }
 
             // ── Blurred background ────────────────────────────────────────
-            // Loaded tiny: it is blurred anyway, so this is cheap on memory and needs no blur library.
+            // Loaded tiny (the picture keeps its shape: FIT_XY adds no crop): it is blurred anyway, so this is cheap on memory
+            // and needs no blur library.
             Glide.with(ctx)
                 .load(path)
                 .override(BG_DECODE_PX, BG_DECODE_PX)

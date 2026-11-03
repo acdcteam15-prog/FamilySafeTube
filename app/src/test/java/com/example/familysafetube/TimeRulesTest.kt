@@ -58,6 +58,16 @@ class TimeRulesTest {
         assertFalse(TimeRules.isInWindow(600, 600, 600))
     }
 
+    @Test fun minutesLabel_roundsUp_soItNeverSaysZeroWhileTimeRemains() {
+        assertEquals(1, TimeRules.minutesLabel(0.01f))       // the last seconds
+        assertEquals(1, TimeRules.minutesLabel(0.99f))
+        assertEquals(1, TimeRules.minutesLabel(1.0f))
+        assertEquals(2, TimeRules.minutesLabel(1.01f))
+        assertEquals(30, TimeRules.minutesLabel(29.2f))
+        assertEquals(0, TimeRules.minutesLabel(0f))          // only when it really is over
+        assertEquals(0, TimeRules.minutesLabel(-3f))
+    }
+
     @Test fun minutesLeft_neverNegative() {
         assertEquals(20f, TimeRules.minutesLeft(30, 10f), 0.001f)
         assertEquals(0f, TimeRules.minutesLeft(30, 45f), 0.001f)

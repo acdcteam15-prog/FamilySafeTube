@@ -38,4 +38,10 @@ object TimeRules {
     /** Whole minutes left of a limit; never negative. */
     fun minutesLeft(limitMins: Int, usedMins: Float): Float =
         (limitMins - usedMins).coerceAtLeast(0f)
+
+    /**
+     * The number shown for "time left": rounded UP, so it never reads "0m" while time is still running
+     * (it used to round down, which showed "0m" for the whole last minute).
+     */
+    fun minutesLabel(left: Float): Int = Math.ceil(left.coerceAtLeast(0f).toDouble()).toInt()
 }

@@ -93,6 +93,18 @@ class UsageRepositoryTest {
         assertEquals(45, store.current[limitKey])
     }
 
+    @Test fun quizRounds_countPerDay() {
+        assertEquals(0, repo.quizRoundsToday())
+        repo.recordQuizRound(); repo.recordQuizRound(); repo.recordQuizRound()
+        assertEquals(3, repo.quizRoundsToday())
+        day = day.plusDays(1)
+        assertEquals(0, repo.quizRoundsToday())             // a new day starts again at zero
+        repo.recordQuizRound()
+        assertEquals(1, repo.quizRoundsToday())
+        day = day.minusDays(1)
+        assertEquals(3, repo.quizRoundsToday())             // yesterday's count is still there
+    }
+
     @Test fun bonus_isPerDay_andAccumulates() {
         repo.addBonus(10); repo.addBonus(5); repo.addBonus(0); repo.addBonus(-4)
         assertEquals(15, repo.bonusToday())

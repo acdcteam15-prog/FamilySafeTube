@@ -9,9 +9,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Protocol
+import okhttp3.Request
+import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.net.URLEncoder
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -28,8 +33,7 @@ import java.util.concurrent.TimeUnit
  *  - Downloads run on a cancellable coroutine loop instead of a blocking latch.
  *  - The daily schedule is a PeriodicWork, so it no longer cancels itself or depends on the app
  *    being opened to keep the chain alive.
- *  - Phase 2 (Google sign-in): no API key. The signed-in user's own My Drive is read with their OAuth token;
- *    the folders are found by name (see [DriveLayout]): Offline/ and Offline/Images/{Animals,Letters,Other,Veg&fruits}.
+ *  - The Drive API key is read from BuildConfig (local.properties), not source code.
  */
 class SyncWorker(context: Context, params: WorkerParameters) :
     CoroutineWorker(context, params) {
@@ -45,6 +49,22 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         const val KEY_PROGRESS_CURRENT = "progress_current"
         const val KEY_PROGRESS_TOTAL   = "progress_total"
         const val KEY_STATUS           = "status"   // "running" | "done" | "error"
+
+        // Drive folders (category -> folder id). Folder ids are not secrets; the API key is.
+        private const val FOLDER_OFFLINE = "1KRE3OHgNn4GCiuw_1P5jTWmaHsepsxjS"
+        private const val FOLDER_ANIMALS = "1FRh_6mBewivxn_ilvi09XapNMMqT1Wdu"
+        private const val FOLDER_LETTERS = "1Pe-9QtLlYkFntPzJFVf74cGuj2L1UEHw"
+        private const val FOLDER_VEG     = "1GVpT2B6hkzL6-S-nR5z9X3dsl8mniYnA"
+        private const val FOLDER_OTHER   = "1cQkpJC2llqxtAwjIAa6IWT_I5fLMpPKy"
+        private const val USER_AGENT     = "Mozilla/5.0 (Linux; Android 16) AppleWebKit/537.36"
+
+        private val FOLDERS = linkedMapOf(
+            "videos"     to FOLDER_OFFLINE,
+            "animals"    to FOLDER_ANIMALS,
+            "letters"    to FOLDER_LETTERS,
+            "veg&fruits" to FOLDER_VEG,
+            "other"      to FOLDER_OTHER
+        )
 
         /** Local file-name prefixes this worker owns. "config" lives in the "videos" Drive folder. */
         private val OWNED_CATEGORIES = listOf("videos", "animals", "letters", "veg&fruits", "other", "config")
@@ -126,8 +146,32 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         }
     }
 
-    private val tokens by lazy { DriveTokens(applicationContext) }
-    private val api by lazy { DriveApi(DriveHttp.client, tokens) }
+    // Cookie jar: Drive sets a download_warning cookie on the virus-scan interstitial that must be
+    // echoed back on the confirmed request. Synchronised because the client is shared.
+    private val cookieJar = object : okhttp3.CookieJar {
+        private val store = mutableMapOf<String, MutableList<okhttp3.Cookie>>()
+        override fun saveFromResponse(url: okhttp3.HttpUrl, cookies: List<okhttp3.Cookie>) {
+            synchronized(store) {
+                store.getOrPut(url.host) { mutableListOf() }.apply {
+                    removeAll { c -> cookies.any { it.name == c.name } }
+                    addAll(cookies)
+                }
+            }
+        }
+        override fun loadForRequest(url: okhttp3.HttpUrl): List<okhttp3.Cookie> =
+            synchronized(store) { store[url.host]?.toList() ?: emptyList() }
+    }
+
+    private val http = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(300, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        .retryOnConnectionFailure(false)
+        .protocols(listOf(Protocol.HTTP_1_1))   // single-connection HTTP/1.1: keeps heap usage flat on big mp4s
+        .cookieJar(cookieJar)
+        .build()
+
+    private val apiKey: String get() = BuildConfig.DRIVE_API_KEY
 
     private fun str(id: Int, vararg args: Any): String = applicationContext.getString(id, *args)
 
@@ -137,9 +181,9 @@ class SyncWorker(context: Context, params: WorkerParameters) :
 
     // ── Entry point ──────────────────────────────────────────────────────────
     override suspend fun doWork(): Result {
-        if (!DriveAuth.isSignedIn()) {
-            // Retrying cannot fix a missing sign-in: the parent has to do it in Settings.
-            emitProgress(str(R.string.sync_not_signed_in), 0, 0, status = "error")
+        if (apiKey.isBlank()) {
+            // Retrying cannot fix a missing key.
+            emitProgress(str(R.string.sync_no_key), 0, 0, status = "error")
             return Result.failure()
         }
 
@@ -159,11 +203,6 @@ class SyncWorker(context: Context, params: WorkerParameters) :
             // can reschedule cleanly instead of treating it as a failure.
             Log.w(TAG, "Sync cancelled — will retry when conditions allow")
             throw e
-        } catch (e: DriveAuthException) {
-            // Signed out elsewhere, consent withdrawn, access not granted: only the parent can fix it.
-            Log.w(TAG, "Drive sign-in problem: ${e.message}")
-            emitProgress(str(R.string.sync_signin_again), 0, 0, status = "error")
-            Result.failure()
         } catch (e: Exception) {
             Log.e(TAG, "Sync failed: ${e.message}", e)
             emitProgress(str(R.string.sync_failed_short), 0, 0, status = "error")
@@ -198,8 +237,6 @@ class SyncWorker(context: Context, params: WorkerParameters) :
                 done++
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: DriveAuthException) {
-                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Failed: ${df.name} — ${e.message}")
                 failed++
@@ -215,7 +252,6 @@ class SyncWorker(context: Context, params: WorkerParameters) :
 
         val scanProblems = scan.failedCategories
         val msg = when {
-            scan.missing.isNotEmpty() -> str(R.string.sync_folders_missing, scan.missing.joinToString())
             scanProblems.isNotEmpty() -> str(R.string.sync_partial, scanProblems.joinToString())
             failed > 0                -> str(R.string.sync_done_some, done, failed)
             total > 0 && deleted > 0  -> str(R.string.sync_complete_removed, done, deleted)
@@ -313,9 +349,7 @@ class SyncWorker(context: Context, params: WorkerParameters) :
     private class ScanResult(
         val files: List<DriveFileInfo>,
         val okCategories: Set<String>,
-        val failedCategories: List<String>,
-        /** Drive paths that do not exist in this user's Drive (permanent: the parent must create them). */
-        val missing: List<String>
+        val failedCategories: List<String>
     )
 
     private suspend fun scanAllFolders(): ScanResult {
@@ -323,13 +357,7 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         val ok     = mutableSetOf<String>()
         val failed = mutableListOf<String>()
 
-        // Find Offline/ and Offline/Images/* in the signed-in user's My Drive. A failure here is a
-        // network/API problem, so it propagates and the worker retries.
-        val layout = api.resolveLayout()
-        val missing = layout.missing()
-        if (missing.isNotEmpty()) Log.w(TAG, "Drive folders missing: $missing")
-
-        for ((category, folderId) in layout.categoryIds()) {
+        for ((category, folderId) in FOLDERS) {
             currentCoroutineContext().ensureActive()
             try {
                 val found = fetchFolder(folderId, category)
@@ -338,46 +366,70 @@ class SyncWorker(context: Context, params: WorkerParameters) :
                 Log.d(TAG, "Folder '$category': ${found.size} files")
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: DriveAuthException) {
-                throw e
             } catch (e: Exception) {
                 failed.add(category)
                 Log.e(TAG, "Scan failed for '$category': ${e.message}")
             }
         }
-        return ScanResult(files, ok, failed, missing)
+        return ScanResult(files, ok, failed)
     }
 
     /** Lists every file in a folder, following nextPageToken until the listing is complete. */
     private fun fetchFolder(folderId: String, category: String): List<DriveFileInfo> {
-        val rows = api.list(
-            "'$folderId' in parents and trashed = false",
-            "id,name,mimeType,size,md5Checksum,modifiedTime"
-        )
+        val query  = "'$folderId' in parents and trashed = false"
+        val fields = "nextPageToken,files(id,name,mimeType,size,md5Checksum,modifiedTime)"
         val result = mutableListOf<DriveFileInfo>()
-        for (obj in rows) {
-            val name = obj.getString("name").trim()
-            val mime = obj.optString("mimeType", "")
-            // Sub-folders (Offline/Images) and Google Docs/Sheets/shortcuts cannot be downloaded as files.
-            if (mime.startsWith("application/vnd.google-apps.")) continue
+        var pageToken: String? = null
 
-            val nameLower      = name.lowercase()
-            val isYoutubeTxt   = nameLower == "youtube.txt" ||
-                    (nameLower.contains("youtube") && nameLower.endsWith(".txt"))
-            val isSettingsJson = nameLower == "settings.json"   // parent's remote settings
+        do {
+            val tokenForRequest = pageToken   // local val: avoids smart-cast problems on the captured var
+            val url = buildString {
+                append("https://www.googleapis.com/drive/v3/files")
+                append("?q=").append(URLEncoder.encode(query, "UTF-8"))
+                append("&pageSize=1000")
+                append("&fields=").append(URLEncoder.encode(fields, "UTF-8"))
+                append("&key=").append(apiKey)
+                if (tokenForRequest != null) append("&pageToken=").append(URLEncoder.encode(tokenForRequest, "UTF-8"))
+            }
 
-            val size     = obj.optLong("size", 0L)
-            val md5      = obj.optString("md5Checksum", "")
-            val modified = obj.optString("modifiedTime", "")
+            val response = http.newCall(
+                Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build()
+            ).execute()
 
-            result.add(DriveFileInfo(
-                id        = obj.getString("id"),
-                name      = when { isYoutubeTxt -> "youtube.txt"; isSettingsJson -> "settings.json"; else -> name },
-                category  = if (isYoutubeTxt || isSettingsJson) "config" else category,
-                size      = size,
-                signature = if (md5.isNotEmpty()) md5 else "$modified|$size"
-            ))
-        }
+            response.use {
+                if (!response.isSuccessful) throw IOException("HTTP ${response.code} scanning $folderId")
+                val json = JSONObject(response.body.string())
+                val arr  = json.optJSONArray("files")
+
+                if (arr != null) {
+                    for (i in 0 until arr.length()) {
+                        val obj  = arr.getJSONObject(i)
+                        val name = obj.getString("name").trim()
+                        val mime = obj.optString("mimeType", "")
+                        if (mime == "application/vnd.google-apps.folder") continue
+
+                        val nameLower    = name.lowercase()
+                        val isYoutubeTxt = nameLower == "youtube.txt" ||
+                                (nameLower.contains("youtube") && nameLower.endsWith(".txt"))
+                        val isSettingsJson = nameLower == "settings.json"   // parent's remote settings
+
+                        val size     = obj.optLong("size", 0L)
+                        val md5      = obj.optString("md5Checksum", "")
+                        val modified = obj.optString("modifiedTime", "")
+
+                        result.add(DriveFileInfo(
+                            id        = obj.getString("id"),
+                            name      = when { isYoutubeTxt -> "youtube.txt"; isSettingsJson -> "settings.json"; else -> name },
+                            category  = if (isYoutubeTxt || isSettingsJson) "config" else category,
+                            size      = size,
+                            signature = if (md5.isNotEmpty()) md5 else "$modified|$size"
+                        ))
+                    }
+                }
+                pageToken = json.optString("nextPageToken", "").ifEmpty { null }
+            }
+        } while (pageToken != null)
+
         return result
     }
 
@@ -398,21 +450,55 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         val dest = File(applicationContext.filesDir, storageName(df.category, df.name))
         val tmp  = File(applicationContext.filesDir, "${dest.name}.tmp")
 
-        // The authorised Drive API download: no virus-scan page and no cookies, because the user owns the file.
-        val base = "${DriveApi.FILES_URL}/${df.id}?alt=media"
+        val baseUrl = "https://drive.usercontent.google.com/download" +
+                      "?id=${df.id}&export=download&authuser=0"
 
-        fun fetch(url: String): Boolean = api.call(url).use { resp ->
-            if (resp.isSuccessful) {
+        // First request: the file itself (small files) or a virus-scan warning page (large files).
+        val confirmedUrl: String? = http.newCall(
+            Request.Builder().url(baseUrl).header("User-Agent", USER_AGENT).build()
+        ).execute().use { resp ->
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} for ${df.name}")
+
+            val contentType = resp.header("Content-Type", "") ?: ""
+            if (!contentType.contains("text/html", ignoreCase = true)) {
                 streamBodyToDisk(resp, tmp, dest, df.name)
-                return@use true
+                return@use null   // already on disk
             }
-            // Drive refuses files it has flagged as malware/spam unless the owner acknowledges the risk.
-            if (resp.code == 403 && resp.body.string().contains("abuse", ignoreCase = true)) return@use false
-            throw IOException("HTTP ${resp.code} for ${df.name}")
+
+            // Warning page (~15 KB HTML). Extract the confirm token and uuid from the form.
+            val html = resp.body.string()
+
+            val token = Regex("""[?&]confirm=([^&"'\s]+)""").find(html)?.groupValues?.get(1)
+                ?: Regex("""name="confirm"\s+value="([^"]+)"""").find(html)?.groupValues?.get(1)
+            val uuid = Regex("""[?&]uuid=([^&"'\s]+)""").find(html)?.groupValues?.get(1)
+                ?: Regex("""name="uuid"\s+value="([^"]+)"""").find(html)?.groupValues?.get(1)
+
+            if (token == null) Log.w(TAG, "No confirm token found for ${df.name} — retrying without token")
+
+            buildString {
+                append(baseUrl)
+                if (token != null) append("&confirm=$token")
+                if (uuid != null) append("&uuid=$uuid")
+            }
         }
 
-        if (!fetch(base)) {
-            if (!fetch("$base&acknowledgeAbuse=true")) throw IOException("Drive refused ${df.name}")
+        if (confirmedUrl == null) {
+            Log.d(TAG, "✓ ${dest.name} (${dest.length()} bytes)")
+            return
+        }
+
+        // Second request: confirmed download (the CookieJar replays the download_warning cookie).
+        http.newCall(
+            Request.Builder().url(confirmedUrl).header("User-Agent", USER_AGENT).build()
+        ).execute().use { resp ->
+            if (!resp.isSuccessful) throw IOException("HTTP ${resp.code} (confirmed) for ${df.name}")
+
+            val contentType = resp.header("Content-Type", "") ?: ""
+            if (contentType.contains("text/html", ignoreCase = true)) {
+                val snippet = resp.body.string().take(200)
+                throw IOException("Still got HTML after confirm for ${df.name}: $snippet")
+            }
+            streamBodyToDisk(resp, tmp, dest, df.name)
         }
         Log.d(TAG, "✓ ${dest.name} (${dest.length()} bytes)")
     }

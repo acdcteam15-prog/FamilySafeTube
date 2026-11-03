@@ -67,7 +67,7 @@ class OfflinePlayerActivity : AppCompatActivity(), VideoAdapter.Host {
             usage.flush()
             windDown.check()
             val left = TimeRules.minutesLeft(Policy.globalLimit(this@OfflinePlayerActivity),
-                                             Policy.globalElapsed(this@OfflinePlayerActivity)).toInt()
+                                             Policy.globalElapsed(this@OfflinePlayerActivity)).let { TimeRules.minutesLabel(it) }
             tvTimeLeft.text = "⏱ ${left}m"
             tvTimeLeft.setTextColor(when {
                 left <= 5  -> Color.parseColor("#FF5252")
@@ -76,10 +76,10 @@ class OfflinePlayerActivity : AppCompatActivity(), VideoAdapter.Host {
             })
             val reason = Policy.blockReason(this@OfflinePlayerActivity, Policy.CAT_VIDEOS)
             if (reason != null) {
-                Toast.makeText(this@OfflinePlayerActivity, reason, Toast.LENGTH_LONG).show()
+                if (Policy.lockKind(this@OfflinePlayerActivity) == LockKind.NONE) Toast.makeText(this@OfflinePlayerActivity, reason, Toast.LENGTH_LONG).show()
                 cleanUpAndExit()
             } else {
-                timerHandler.postDelayed(this, checkIntervalMs)
+                timerHandler.postDelayed(this, Policy.nextCheckDelayMs(this@OfflinePlayerActivity, Policy.CAT_VIDEOS))
             }
         }
     }
@@ -342,12 +342,12 @@ class OfflinePlayerActivity : AppCompatActivity(), VideoAdapter.Host {
         // Bedtime / a limit may have started while the app was in the background.
         val reason = Policy.blockReason(this, Policy.CAT_VIDEOS)
         if (reason != null) {
-            Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
+            if (Policy.lockKind(this) == LockKind.NONE) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         usage.start()
-        timerHandler.postDelayed(usageTicker, checkIntervalMs)
+        timerHandler.postDelayed(usageTicker, Policy.nextCheckDelayMs(this, Policy.CAT_VIDEOS))
         showHudBriefly()
         // (Re)start playback of the current page on a fresh player once layout is settled.
         viewPager.post { playIndex(viewPager.currentItem) }

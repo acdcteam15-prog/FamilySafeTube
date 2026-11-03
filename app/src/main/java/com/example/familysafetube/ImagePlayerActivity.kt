@@ -54,7 +54,7 @@ class ImagePlayerActivity : AppCompatActivity(),
             usage.flush()
             windDown.check()
             val left = TimeRules.minutesLeft(Policy.globalLimit(this@ImagePlayerActivity),
-                                             Policy.globalElapsed(this@ImagePlayerActivity)).toInt()
+                                             Policy.globalElapsed(this@ImagePlayerActivity)).let { TimeRules.minutesLabel(it) }
             tvTimeLeft.text = "⏱ ${left}m"
             tvTimeLeft.setTextColor(when {
                 left <= 5  -> Color.parseColor("#FF5252")
@@ -63,10 +63,12 @@ class ImagePlayerActivity : AppCompatActivity(),
             })
             val reason = Policy.blockReason(this@ImagePlayerActivity, Policy.CAT_IMAGES)
             if (reason != null) {
-                Toast.makeText(this@ImagePlayerActivity, reason, Toast.LENGTH_LONG).show()
+                // A full lock (time up, bedtime) needs no words: the lock screen takes over. Only a category limit explains itself.
+                if (Policy.lockKind(this@ImagePlayerActivity) == LockKind.NONE) Toast.makeText(this@ImagePlayerActivity, reason, Toast.LENGTH_LONG).show()
                 finish()
             } else {
-                timerHandler.postDelayed(this, checkIntervalMs)
+                // look again exactly when the time runs out (not up to 10 s late)
+                timerHandler.postDelayed(this, Policy.nextCheckDelayMs(this@ImagePlayerActivity, Policy.CAT_IMAGES))
             }
         }
     }
@@ -265,12 +267,12 @@ class ImagePlayerActivity : AppCompatActivity(),
         // Bedtime / a limit may have started while the app was in the background.
         val reason = Policy.blockReason(this, Policy.CAT_IMAGES)
         if (reason != null) {
-            Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
+            if (Policy.lockKind(this) == LockKind.NONE) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         usage.start()
-        timerHandler.postDelayed(usageTicker, checkIntervalMs)
+        timerHandler.postDelayed(usageTicker, Policy.nextCheckDelayMs(this, Policy.CAT_IMAGES))
         showHudBriefly()
     }
 

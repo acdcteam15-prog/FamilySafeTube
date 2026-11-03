@@ -31,10 +31,10 @@ class QuizActivity : AppCompatActivity() {
             windDown.check()
             val reason = Policy.blockReason(this@QuizActivity, Policy.CAT_IMAGES)
             if (reason != null) {
-                Toast.makeText(this@QuizActivity, reason, Toast.LENGTH_LONG).show()
+                if (Policy.lockKind(this@QuizActivity) == LockKind.NONE) Toast.makeText(this@QuizActivity, reason, Toast.LENGTH_LONG).show()
                 finish()
             } else {
-                handler.postDelayed(this, 10_000)
+                handler.postDelayed(this, Policy.nextCheckDelayMs(this@QuizActivity, Policy.CAT_IMAGES))
             }
         }
     }
@@ -62,12 +62,12 @@ class QuizActivity : AppCompatActivity() {
         super.onResume()
         val reason = Policy.blockReason(this, Policy.CAT_IMAGES)
         if (reason != null) {
-            Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
+            if (Policy.lockKind(this) == LockKind.NONE) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         usage.start()
-        handler.postDelayed(ticker, 10_000)
+        handler.postDelayed(ticker, Policy.nextCheckDelayMs(this, Policy.CAT_IMAGES))
     }
 
     override fun onPause() {

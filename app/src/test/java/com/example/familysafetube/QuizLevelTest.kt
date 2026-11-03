@@ -17,14 +17,14 @@ class QuizLevelTest {
 
     @Test fun levelsGetHarder() {
         assertEquals(2, QuizLevel.BABY.options); assertEquals(0.0, QuizLevel.BABY.soundOnlyChance, 0.0)
-        assertEquals(3, QuizLevel.TODDLER.options); assertEquals(3, QuizLevel.OLDER.options)
+        assertEquals(2, QuizLevel.TODDLER.options); assertEquals(3, QuizLevel.OLDER.options)       // two stacked pictures, three for Older
         assertEquals(true, QuizLevel.OLDER.soundOnlyChance > QuizLevel.TODDLER.soundOnlyChance)
         assertEquals(true, QuizLevel.BABY.idleRepeatMs > QuizLevel.TODDLER.idleRepeatMs)
     }
 
     @Test fun optionCountPerLevel() {
         for (m in listOf(0, 1, 5, 50)) assertEquals(2, QuizEngine.optionCount(m, QuizLevel.BABY))
-        assertEquals(3, QuizEngine.optionCount(2, QuizLevel.TODDLER)); assertEquals(2, QuizEngine.optionCount(3, QuizLevel.TODDLER))
+        for (m in listOf(0, 3, 50)) assertEquals(2, QuizEngine.optionCount(m, QuizLevel.TODDLER))   // always two
         assertEquals(3, QuizEngine.optionCount(3, QuizLevel.OLDER)); assertEquals(2, QuizEngine.optionCount(4, QuizLevel.OLDER))
     }
 

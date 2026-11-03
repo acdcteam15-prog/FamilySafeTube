@@ -18,6 +18,15 @@ val appVersionCode: Int = versionProps.getProperty("versionCodeOffset", "100").t
 // "owner/repo" whose GitHub Releases the in-app updater reads. Actions sets GITHUB_REPOSITORY itself.
 val updateRepo: String = System.getenv("GITHUB_REPOSITORY") ?: providers.gradleProperty("updateRepo").orNull ?: "CHANGE_ME/FamilySafeTube"
 
+// ---------- Drive API key ----------
+// Never in source: the DRIVE_API_KEY environment variable (GitHub Actions: repository secret) or local.properties.
+val driveApiKey: String = run {
+    val props = Properties()
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { props.load(it) }
+    (System.getenv("DRIVE_API_KEY") ?: props.getProperty("DRIVE_API_KEY") ?: "").trim()
+}
+
 // ---------- release signing ----------
 // CI: KEYSTORE_FILE / KEYSTORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD (decoded from repository secrets).
 // Local: keystore.properties (git-ignored). Without either, release builds are debug-signed (not updatable).
@@ -39,6 +48,7 @@ android {
         targetSdk = 34   // stays at 34 until the players are reviewed for edge-to-edge behaviour changes
         versionCode = appVersionCode
         versionName = appVersionName
+        buildConfigField("String", "DRIVE_API_KEY", "\"$driveApiKey\"")
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
     }
 
@@ -117,8 +127,11 @@ dependencies {
     implementation(libs.androidx.work.runtime)          // WorkManager (includes Kotlin/coroutine APIs)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)                         // Drive sync and the in-app updater
+<<<<<<< Updated upstream
     implementation(libs.material)                       // needed by the Google sign-in screens (their theme extends Material Components)
     implementation(libs.play.services.auth)             // Google sign-in for Drive (no API key in the app)
+=======
+>>>>>>> Stashed changes
 
     // Media
     implementation(libs.media3.exoplayer)

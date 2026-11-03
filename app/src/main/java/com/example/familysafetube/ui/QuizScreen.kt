@@ -67,6 +67,7 @@ import com.example.familysafetube.ImagePlan
 import com.example.familysafetube.Keys
 import com.example.familysafetube.QuizAudio
 import com.example.familysafetube.PraiseEvent
+import com.example.familysafetube.Policy
 import com.example.familysafetube.PraisePicker
 import com.example.familysafetube.QuizAudioPlan
 import com.example.familysafetube.QuizCard
@@ -138,6 +139,7 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
     val roundCorrect = remember { mutableListOf<String>() }            // what was learned this round, for the sticker
     var newSticker by remember { mutableStateOf<QuizCard?>(null) }
     var showAlbum by remember { mutableStateOf(false) }
+    var lastRoundOfDay by remember { mutableStateOf(false) }      // this round used up the parent's daily limit
     var misses by remember { mutableIntStateOf(0) }            // wrong answers in a row (makes questions easier)
     var question by remember { mutableStateOf<QuizQuestion?>(null) }
     var stars by remember { mutableIntStateOf(0) }
@@ -185,6 +187,8 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
     fun finishRound() {
         roundOver = true
         stars = QuizRules.SET_SIZE
+        AppGraph.usage.recordQuizRound()                              // counts towards the optional daily limit
+        lastRoundOfDay = Policy.quizRoundsReached()
         // Visual reward: a sticker of something just got right (never extra screen time)
         val awarded = StickerAlbum.award(roundCorrect.toList(), QuizRepository.stickers(), eligibleStickers)
         roundCorrect.clear()
@@ -266,7 +270,8 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
                 else optionKey to QuizImageLayout.meanAspect(withContext(Dispatchers.IO) { q.options.map { CardAspect.of(it) } })
             }
             val aspect = if (measured.first == optionKey) measured.second else 0f
-            val plan = QuizImageLayout.plan(q?.options?.size ?: 3, maxWidth.value, imageHeightDp, aspect = aspect)
+            // The pictures are always stacked, one above the other (never side by side).
+            val plan = QuizImageLayout.plan(q?.options?.size ?: 3, maxWidth.value, imageHeightDp, aspect = aspect, only = ImageArrangement.COLUMN)
 
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()),   // safety net for huge font sizes only
@@ -379,6 +384,8 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
         if (roundOver) {
             RoundComplete(
                 newSticker = newSticker,
+                showAgain = !lastRoundOfDay,
+                footer = if (lastRoundOfDay) stringResource(R.string.quiz_last_round_today) else null,
                 onAlbum = { showAlbum = true },
                 onAgain = {
                     stars = 0
@@ -427,18 +434,35 @@ private fun OptionsLayout(
     }
 }
 
-/** A calm celebration after a round: big stars, "Well done!", then Again or Bye-bye. No timer, no pressure. */
+/**
+ * The celebration after a round: fireworks, confetti and falling stars, the logo hopping and wiggling, big stars, the
+ * sticker just won, then Again / My stickers / Bye-bye. [showAgain] is false after the last round the parent allows today.
+ * No timer, no pressure.
+ */
 @Composable
-internal fun RoundComplete(newSticker: QuizCard?, onAlbum: () -> Unit, onAgain: () -> Unit, onBye: () -> Unit) {
+internal fun RoundComplete(
+    newSticker: QuizCard?,
+    onAlbum: () -> Unit,
+    onAgain: () -> Unit,
+    onBye: () -> Unit,
+    showAgain: Boolean = true,
+    footer: String? = null
+) {
     var shown by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { shown = true }                       // starts at 0 so the stars really grow in
     val pulse by animateFloatAsState(targetValue = if (shown) 1f else 0f, animationSpec = tween(700), label = "stars")
+    val clock = rememberCelebrationClock()
     Box(
         Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.96f)).safeDrawingPadding(),
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
-            AppLogo(Modifier.size(84.dp))
+        CelebrationLayer(clock, Modifier.fillMaxSize())          // behind the content; takes no touches
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp)
+        ) {
+            Spacer(Modifier.height(32.dp))                       // room for the logo's hop
+            DancingLogo(clock, Modifier.size(120.dp))
             Spacer(Modifier.height(12.dp))
             Text(
                 "⭐".repeat(QuizRules.SET_SIZE),
@@ -465,9 +489,13 @@ internal fun RoundComplete(newSticker: QuizCard?, onAlbum: () -> Unit, onAgain: 
                     modifier = Modifier.padding(top = 6.dp)
                 )
             }
+            if (footer != null) {
+                Spacer(Modifier.height(12.dp))
+                Text(footer, color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, textAlign = TextAlign.Center)
+            }
             Spacer(Modifier.height(24.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                BigChoice("🔁", stringResource(R.string.quiz_again), Brand.StatusGreen, onAgain)
+                if (showAgain) BigChoice("🔁", stringResource(R.string.quiz_again), Brand.StatusGreen, onAgain)
                 BigChoice("🏆", stringResource(R.string.album_button), Brand.StatusAmber, onAlbum)
                 BigChoice("👋", stringResource(R.string.quiz_bye), Brand.AccentBlue, onBye)
             }

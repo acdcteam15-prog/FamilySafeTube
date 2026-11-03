@@ -14,8 +14,8 @@ import java.io.File
 
 enum class HomeStatus { ACTIVE, BEDTIME, LIMIT_REACHED, SYNCING, SYNC_FAILED }
 
-/** Quiz card on the home screen: hidden by the parent, not enough pictures yet, or ready to play. */
-enum class QuizState { HIDDEN, NOT_READY, READY }
+/** Quiz card on the home screen: hidden by the parent, not enough pictures yet, ready to play, or all of today's rounds are done. */
+enum class QuizState { HIDDEN, NOT_READY, READY, DONE_TODAY }
 
 /** Everything the home screen shows, in one immutable snapshot. */
 data class MainUiState(
@@ -29,7 +29,9 @@ data class MainUiState(
     val imagesCount: Int = 0,
     val quiz: QuizState = QuizState.HIDDEN,
     /** The matching game card (parent can hide it in Settings). */
-    val matchVisible: Boolean = true
+    val matchVisible: Boolean = true,
+    /** Not NONE: the whole app is covered by the lock screen (time is up, bedtime, or the parent pressed "Lock now"). */
+    val lock: LockKind = LockKind.NONE
 )
 
 /**
@@ -38,7 +40,8 @@ data class MainUiState(
  */
 class MainViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val _ui = MutableStateFlow(MainUiState())
+    // The lock is known at once (it only reads in-memory settings), so a locked app never flashes its home screen.
+    private val _ui = MutableStateFlow(MainUiState(lock = Policy.lockKind(app)))
     val ui: StateFlow<MainUiState> = _ui.asStateFlow()
 
     private data class Counts(val youtube: Int, val offline: Int, val images: Int, val quizPlayable: Boolean)
@@ -50,6 +53,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Recompute everything from current settings, usage and files. Call on resume and on a timer. */
     fun refresh() {
+        // Update the lock first and synchronously: coming back to a locked app must not show the home screen even for a moment.
+        _ui.value = _ui.value.copy(lock = Policy.lockKind(getApplication<Application>()))
         syncFailed = false
         viewModelScope.launch {
             counts = withContext(Dispatchers.IO) { readCounts() }
@@ -119,10 +124,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             offlineCount = counts.offline,
             imagesCount  = counts.images,
             matchVisible = AppGraph.settings.getOr(Keys.MATCH_ENABLED, true),
+            lock         = Policy.lockKind(ctx),
             quiz         = when {
                 !AppGraph.settings.getOr(Keys.QUIZ_ENABLED, true) -> QuizState.HIDDEN
-                counts.quizPlayable                               -> QuizState.READY
-                else                                              -> QuizState.NOT_READY
+                !counts.quizPlayable                              -> QuizState.NOT_READY
+                Policy.quizRoundsReached()                        -> QuizState.DONE_TODAY
+                else                                              -> QuizState.READY
             }
         )
     }

@@ -57,10 +57,10 @@ class YoutubePlayerActivity : AppCompatActivity() {
             updateHUD()
             val reason = Policy.blockReason(this@YoutubePlayerActivity, Policy.CAT_YOUTUBE)
             if (reason != null) {
-                Toast.makeText(this@YoutubePlayerActivity, reason, Toast.LENGTH_LONG).show()
+                if (Policy.lockKind(this@YoutubePlayerActivity) == LockKind.NONE) Toast.makeText(this@YoutubePlayerActivity, reason, Toast.LENGTH_LONG).show()
                 cleanUpAndExit()
             } else {
-                timerHandler.postDelayed(this, checkInterval)
+                timerHandler.postDelayed(this, Policy.nextCheckDelayMs(this@YoutubePlayerActivity, Policy.CAT_YOUTUBE))
             }
         }
     }
@@ -171,7 +171,7 @@ class YoutubePlayerActivity : AppCompatActivity() {
     private fun updateHUD() {
         val leftMins = TimeRules.minutesLeft(Policy.globalLimit(this), Policy.globalElapsed(this))
         tvVideoCounter.text = "▶ ${currentIndex + 1} / ${shuffledIds.size}"
-        tvTimeLeft.text     = getString(R.string.yt_time_left, leftMins.toInt())
+        tvTimeLeft.text     = getString(R.string.yt_time_left, TimeRules.minutesLabel(leftMins))
     }
 
     // ── WebView ──────────────────────────────────────────────────────────────
@@ -367,12 +367,12 @@ class YoutubePlayerActivity : AppCompatActivity() {
         // Bedtime / a limit may have started while the app was in the background.
         val reason = Policy.blockReason(this, Policy.CAT_YOUTUBE)
         if (reason != null) {
-            Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
+            if (Policy.lockKind(this) == LockKind.NONE) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         usage.start()
-        timerHandler.postDelayed(usageTicker, checkInterval)
+        timerHandler.postDelayed(usageTicker, Policy.nextCheckDelayMs(this, Policy.CAT_YOUTUBE))
         updateHUD()
     }
 

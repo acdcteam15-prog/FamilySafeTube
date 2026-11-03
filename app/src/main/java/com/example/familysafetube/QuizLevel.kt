@@ -13,7 +13,7 @@ enum class QuizLevel(
     val missesBeforeEasier: Int
 ) {
     BABY("baby", 2, 0.0, 14_000L, Int.MAX_VALUE),
-    TODDLER("toddler", 3, 0.3, 10_000L, 3),
+    TODDLER("toddler", 2, 0.3, 10_000L, 3),
     OLDER("older", 3, 0.5, 8_000L, 4);
 
     companion object {

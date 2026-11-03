@@ -70,7 +70,8 @@ fun HomeScreen(
     onMatch: () -> Unit,
     onUpdates: () -> Unit,
     onSettings: () -> Unit,
-    onResetTimer: () -> Unit
+    onResetTimer: () -> Unit,
+    onLockNow: () -> Unit
 ) {
     Column(
         Modifier
@@ -95,7 +96,7 @@ fun HomeScreen(
                         UpdateBanner(onUpdates)
                         UsageCard(state)
                         SyncButton(state, onSync)
-                        ParentButtons(onSettings, onResetTimer)
+                        ParentButtons(onSettings, onResetTimer, onLockNow)
                     }
                     Column(
                         Modifier.weight(1.3f).verticalScroll(rememberScrollState()),
@@ -116,7 +117,7 @@ fun HomeScreen(
                     UsageCard(state)
                     SyncButton(state, onSync)
                     Modes(state, onYoutube, onOffline, onImages, onQuiz, onMatch)
-                    ParentButtons(onSettings, onResetTimer)
+                    ParentButtons(onSettings, onResetTimer, onLockNow)
                 }
             }
         }
@@ -162,7 +163,11 @@ private fun Modes(
                 emoji = "🧩",
                 title = stringResource(R.string.mode_quiz),
                 subtitle = stringResource(
-                    if (state.quiz == QuizState.READY) R.string.quiz_subtitle else R.string.quiz_none
+                    when (state.quiz) {
+                        QuizState.READY -> R.string.quiz_subtitle
+                        QuizState.DONE_TODAY -> R.string.quiz_done_today
+                        else -> R.string.quiz_none
+                    }
                 ),
                 brush = Brand.QuizBrush,
                 onClick = onQuiz
@@ -181,10 +186,11 @@ private fun Modes(
 }
 
 @Composable
-private fun ParentButtons(onSettings: () -> Unit, onResetTimer: () -> Unit) {
+private fun ParentButtons(onSettings: () -> Unit, onResetTimer: () -> Unit, onLockNow: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
         SecondaryButton(stringResource(R.string.btn_settings), Modifier.weight(1f), onSettings)
         SecondaryButton(stringResource(R.string.btn_reset_timer), Modifier.weight(1f), onResetTimer)
+        SecondaryButton(stringResource(R.string.btn_lock_now), Modifier.weight(1f), onLockNow)
     }
 }
 
@@ -211,7 +217,7 @@ private fun Header(state: MainUiState) {
             Spacer(Modifier.height(4.dp))
             StatusPill(state)
         }
-        val left = TimeRules.minutesLeft(state.limitMins, state.usedMins).toInt()
+        val left = TimeRules.minutesLabel(TimeRules.minutesLeft(state.limitMins, state.usedMins))
         Text(
             "⏱ " + stringResource(R.string.home_time_left, left),
             color = usageColor(state),

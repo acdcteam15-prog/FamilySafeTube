@@ -37,7 +37,12 @@ object Policy {
         return ScheduleConfig(weekday, weekend, Schedule.parseDays(settings.getOr(Keys.WEEKEND_DAYS, "")))
     }
 
-    fun isBedtime(c: Context): Boolean = Schedule.isBedtime(LocalDateTime.now(), schedule())
+    /** True during the configured bedtime window, ignoring any extension the parent granted. */
+    private fun rawBedtime(): Boolean = Schedule.isBedtime(LocalDateTime.now(), schedule())
+
+    /** Bedtime, unless the parent lifted it (a deadline in epoch ms) and that extension is still running. */
+    fun isBedtime(c: Context): Boolean =
+        LockPolicy.bedtimeActive(rawBedtime(), System.currentTimeMillis(), settings.getOr(Keys.BEDTIME_EXTENSION_UNTIL, 0L))
 
     /** "HH:mm" at which the current bedtime lock ends (falls back to today's configured end). */
     fun bedtimeEnd(c: Context): String {
@@ -48,6 +53,13 @@ object Policy {
     }
 
     fun minutesUntilBedtime(c: Context): Int? = Schedule.minutesUntilBedtime(LocalDateTime.now(), schedule())
+
+    /** Like [minutesUntilBedtime] but down to the second, so the lock can happen exactly when bedtime starts. */
+    private fun preciseMinutesUntilBedtime(): Float? {
+        val now = LocalDateTime.now()
+        val whole = Schedule.minutesUntilBedtime(now, schedule()) ?: return null
+        return (whole - (now.second + now.nano / 1_000_000_000f) / 60f).coerceAtLeast(0f)
+    }
 
     /** Today's global limit in minutes: the weekday/weekend limit plus any bonus minutes. */
     fun globalLimit(c: Context): Int =
@@ -72,7 +84,10 @@ object Policy {
     fun minutesLeft(c: Context, category: String?): Float {
         var left = TimeRules.minutesLeft(globalLimit(c), globalElapsed(c))
         if (category != null) categoryRemaining(c, category)?.let { left = minOf(left, it) }
-        minutesUntilBedtime(c)?.let { left = minOf(left, it.toFloat()) }
+        preciseMinutesUntilBedtime()?.let { left = minOf(left, it) }
+        // a bedtime extension granted by the parent ends at its deadline
+        LockPolicy.extensionMinutesLeft(rawBedtime(), System.currentTimeMillis(), settings.getOr(Keys.BEDTIME_EXTENSION_UNTIL, 0L))
+            ?.let { left = minOf(left, it) }
         return left
     }
 
@@ -99,4 +114,36 @@ object Policy {
         }
         return null
     }
+
+    // ── full-app lock ─────────────────────────────────────────────────────
+
+    /** Why the whole app should be covered by the lock screen right now (NONE = it should not be). */
+    fun lockKind(c: Context): LockKind =
+        LockPolicy.kind(settings.getOr(Keys.MANUAL_LOCK, false), isBedtime(c), isGlobalLimitReached(c))
+
+    /** When a screen should look at the limits again: exactly when the time runs out, and at the latest in 10 seconds. */
+    fun nextCheckDelayMs(c: Context, category: String?): Long = LockPolicy.nextCheckDelayMs(minutesLeft(c, category))
+
+    /** The parent pressed "Lock now". */
+    fun lockNow() = settings.edit { it[Keys.MANUAL_LOCK] = true }
+
+    /**
+     * The parent entered the PIN. A manual lock is simply opened; otherwise [minutes] are added (time up: to today's
+     * limit; bedtime: bedtime is lifted for that long, plus the minutes when today's limit is used up as well).
+     */
+    fun unlock(c: Context, minutes: Int) {
+        val kind = lockKind(c)
+        val grant = LockPolicy.grant(
+            kind, isGlobalLimitReached(c), minutes,
+            System.currentTimeMillis(), settings.getOr(Keys.BEDTIME_EXTENSION_UNTIL, 0L)
+        )
+        if (grant.bonusMinutes > 0) usage.addBonus(grant.bonusMinutes)
+        grant.bedtimeExtensionUntilMs?.let { until -> settings.edit { it[Keys.BEDTIME_EXTENSION_UNTIL] = until } }
+        if (kind == LockKind.MANUAL) settings.edit { it[Keys.MANUAL_LOCK] = false }
+    }
+
+    // ── quiz rounds per day ───────────────────────────────────────────────
+    fun quizRoundsLimit(): Int = RoundLimit.sanitize(settings.getOr(Keys.QUIZ_ROUNDS_LIMIT, 0))
+
+    fun quizRoundsReached(): Boolean = RoundLimit.reached(quizRoundsLimit(), usage.quizRoundsToday())
 }

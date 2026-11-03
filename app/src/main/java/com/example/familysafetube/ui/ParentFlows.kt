@@ -56,12 +56,12 @@ import com.example.familysafetube.DeckId
 import com.example.familysafetube.QuizDecks
 import com.example.familysafetube.QuizLang
 import com.example.familysafetube.QuizLevel
+import com.example.familysafetube.RoundLimit
 import com.example.familysafetube.Policy
 import com.example.familysafetube.R
 import com.example.familysafetube.Schedule
 import com.example.familysafetube.SettingsForm
 import com.example.familysafetube.SettingsInput
-import com.example.familysafetube.DriveAuth
 import com.example.familysafetube.SyncWorker
 import com.example.familysafetube.UsageTracker
 import com.example.familysafetube.get
@@ -193,8 +193,7 @@ fun SettingsDialog(
     onClearStorage: () -> Unit,
     onDashboard: () -> Unit,
     onQuizEditor: () -> Unit,
-    onUpdates: () -> Unit,
-    drive: DriveUi
+    onUpdates: () -> Unit
 ) {
     val ctx = LocalContext.current
     val st = AppGraph.settings
@@ -212,10 +211,6 @@ fun SettingsDialog(
     var voice by remember { mutableStateOf(st.getOr(Keys.VOICE_OVER, true)) }
     var autoplay by remember { mutableStateOf(st.getOr(Keys.AUTOPLAY_NEXT, false)) }
 
-    var driveAccount by remember { mutableStateOf(DriveAuth.accountEmail()) }
-    var driveStatus by remember { mutableStateOf("") }
-    var driveBusy by remember { mutableStateOf(false) }
-
     var weekendOn by remember { mutableStateOf(st.getOr(Keys.WEEKEND_ENABLED, false)) }
     var wLimit by remember { mutableStateOf(st.getOr(Keys.WEEKEND_LIMIT, 60).toString()) }
     var wBedStart by remember { mutableStateOf(st.getOr(Keys.WEEKEND_BED_START, "22:00")) }
@@ -226,6 +221,7 @@ fun SettingsDialog(
     var quizLang by remember { mutableStateOf(QuizLang.fromCode(st[Keys.QUIZ_LANG])) }
     var quizSoundOnly by remember { mutableStateOf(st.getOr(Keys.QUIZ_SOUND_ONLY, true)) }
     var quizLevel by remember { mutableStateOf(QuizLevel.fromCode(st[Keys.QUIZ_LEVEL])) }
+    var quizRounds by remember { mutableStateOf(RoundLimit.sanitize(st.getOr(Keys.QUIZ_ROUNDS_LIMIT, 0))) }
     var quizPhonics by remember { mutableStateOf(st.getOr(Keys.QUIZ_PHONICS, false)) }
     var matchOn by remember { mutableStateOf(st.getOr(Keys.MATCH_ENABLED, true)) }
     var quizDecks by remember { mutableStateOf(QuizDecks.parse(st[Keys.QUIZ_DECKS])) }
@@ -272,6 +268,7 @@ fun SettingsDialog(
                     p[Keys.QUIZ_LANG] = quizLang.code
                     p[Keys.QUIZ_SOUND_ONLY] = quizSoundOnly
                     p[Keys.QUIZ_LEVEL] = quizLevel.code
+                    p[Keys.QUIZ_ROUNDS_LIMIT] = quizRounds
                     p[Keys.QUIZ_PHONICS] = quizPhonics
                     p[Keys.MATCH_ENABLED] = matchOn
                     p[Keys.QUIZ_DECKS] = QuizDecks.format(quizDecks)
@@ -312,67 +309,6 @@ fun SettingsDialog(
                     Field(vid, { vid = it }, R.string.settings_limit_videos, numeric = true)
                     Spacer(Modifier.height(8.dp))
                     Field(img, { img = it }, R.string.settings_limit_images, numeric = true)
-
-                    SectionTitle(R.string.settings_drive_label)
-                    Text(
-                        if (driveAccount.isBlank()) stringResource(R.string.drive_not_signed_in)
-                        else stringResource(R.string.drive_account, driveAccount),
-                        fontSize = 14.sp
-                    )
-                    Spacer(Modifier.height(6.dp))
-                    if (driveAccount.isBlank()) {
-                        Button(
-                            enabled = !driveBusy,
-                            onClick = {
-                                driveBusy = true
-                                drive.driveSignIn { msg ->
-                                    driveBusy = false
-                                    driveAccount = DriveAuth.accountEmail()
-                                    driveStatus = msg
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.drive_sign_in)) }
-                    } else {
-                        OutlinedButton(
-                            enabled = !driveBusy,
-                            onClick = {
-                                driveBusy = true
-                                driveStatus = ctx.getString(R.string.drive_working)
-                                drive.driveCheck(false) { msg -> driveBusy = false; driveStatus = msg }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.drive_check)) }
-                        Spacer(Modifier.height(6.dp))
-                        OutlinedButton(
-                            enabled = !driveBusy,
-                            onClick = {
-                                driveBusy = true
-                                driveStatus = ctx.getString(R.string.drive_working)
-                                drive.driveCheck(true) { msg -> driveBusy = false; driveStatus = msg }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.drive_create)) }
-                        Spacer(Modifier.height(6.dp))
-                        TextButton(
-                            enabled = !driveBusy,
-                            onClick = {
-                                drive.driveSignOut {
-                                    driveAccount = ""
-                                    driveStatus = ctx.getString(R.string.drive_signed_out_msg)
-                                }
-                            }
-                        ) { Text(stringResource(R.string.drive_sign_out)) }
-                    }
-                    if (driveStatus.isNotBlank()) {
-                        Text(driveStatus, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                    }
-                    Text(
-                        stringResource(R.string.drive_hint),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
 
                     SectionTitle(R.string.settings_sync_time)
                     Field(syncTime, { syncTime = it }, R.string.settings_time_hint)
@@ -448,6 +384,16 @@ fun SettingsDialog(
                         ) {
                             RadioButton(selected = quizLevel == level, onClick = { quizLevel = level })
                             Text(stringResource(label), modifier = Modifier.weight(1f))
+                        }
+                    }
+                    SectionTitle(R.string.settings_quiz_rounds)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (n in RoundLimit.CHOICES) {
+                            FilterChip(
+                                selected = quizRounds == n,
+                                onClick = { quizRounds = n },
+                                label = { Text(if (n == 0) stringResource(R.string.settings_quiz_rounds_none) else n.toString()) }
+                            )
                         }
                     }
                     SectionTitle(R.string.settings_quiz_decks)

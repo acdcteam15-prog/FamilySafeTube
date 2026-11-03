@@ -28,10 +28,10 @@ class MatchActivity : AppCompatActivity() {
             windDown.check()
             val reason = Policy.blockReason(this@MatchActivity, Policy.CAT_IMAGES)
             if (reason != null) {
-                Toast.makeText(this@MatchActivity, reason, Toast.LENGTH_LONG).show()
+                if (Policy.lockKind(this@MatchActivity) == LockKind.NONE) Toast.makeText(this@MatchActivity, reason, Toast.LENGTH_LONG).show()
                 finish()
             } else {
-                handler.postDelayed(this, 10_000)
+                handler.postDelayed(this, Policy.nextCheckDelayMs(this@MatchActivity, Policy.CAT_IMAGES))
             }
         }
     }
@@ -53,12 +53,12 @@ class MatchActivity : AppCompatActivity() {
         super.onResume()
         val reason = Policy.blockReason(this, Policy.CAT_IMAGES)
         if (reason != null) {
-            Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
+            if (Policy.lockKind(this) == LockKind.NONE) Toast.makeText(this, reason, Toast.LENGTH_LONG).show()
             finish()
             return
         }
         usage.start()
-        handler.postDelayed(ticker, 10_000)
+        handler.postDelayed(ticker, Policy.nextCheckDelayMs(this, Policy.CAT_IMAGES))
     }
 
     override fun onPause() {

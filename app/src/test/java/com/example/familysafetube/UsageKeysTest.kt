@@ -46,6 +46,13 @@ class UsageKeysTest {
         assertNull(UsageKeys.dayOf("quiz_enabled"))                // a setting, not a day key
     }
 
+    @Test fun roundsKeys_areRecognisedByDay_soTheyArePruned() {
+        assertEquals("rounds_20261006", UsageKeys.roundsKey(d))
+        assertEquals("20261006", UsageKeys.dayOf("rounds_20261006"))
+        assertTrue(UsageKeys.isOlderThan("rounds_20260101", LocalDate.of(2026, 7, 8)))
+        assertFalse(UsageKeys.isOlderThan("rounds_20261006", LocalDate.of(2026, 7, 8)))
+    }
+
     @Test fun parseDay_roundTrips() {
         assertEquals(d, UsageKeys.parseDay(UsageKeys.dayStamp(d)))
         assertNull(UsageKeys.parseDay("2026xx06"))

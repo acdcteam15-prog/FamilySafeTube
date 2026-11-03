@@ -51,6 +51,14 @@ class UsageRepository(
         store.edit { it[key] = (it[key] ?: 0) + minutes }
     }
 
+    // ── quiz rounds finished today (optional daily limit) ─────────────────────
+    fun quizRoundsToday(): Int = store.snapshot()[intPreferencesKey(UsageKeys.roundsKey(today()))] ?: 0
+
+    fun recordQuizRound() {
+        val key = intPreferencesKey(UsageKeys.roundsKey(today()))
+        store.edit { it[key] = (it[key] ?: 0) + 1 }
+    }
+
     /** Parent pressed "Reset timer": forget today's usage and tamper count. */
     fun resetToday() {
         val prefix = UsageKeys.usageDayPrefix(today())

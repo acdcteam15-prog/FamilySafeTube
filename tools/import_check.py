@@ -19,6 +19,10 @@ COMP = {  # composable / type used as Name( or Name. -> import
  'AlertDialog':'androidx.compose.material3.AlertDialog','Switch':'androidx.compose.material3.Switch','Alignment':'androidx.compose.ui.Alignment','Modifier':'androidx.compose.ui.Modifier',
  'FontWeight':'androidx.compose.ui.text.font.FontWeight','stringResource':'androidx.compose.ui.res.stringResource','painterResource':'androidx.compose.ui.res.painterResource',
  'LaunchedEffect':'androidx.compose.runtime.LaunchedEffect','remember':'androidx.compose.runtime.remember','mutableStateOf':'androidx.compose.runtime.mutableStateOf',
+ 'Canvas':'androidx.compose.foundation.Canvas','Offset':'androidx.compose.ui.geometry.Offset','Size':'androidx.compose.ui.geometry.Size',
+ 'Path':'androidx.compose.ui.graphics.Path','TransformOrigin':'androidx.compose.ui.graphics.TransformOrigin','Color':'androidx.compose.ui.graphics.Color',
+ 'rotate':'androidx.compose.ui.graphics.drawscope.rotate','withFrameNanos':'androidx.compose.runtime.withFrameNanos',
+ 'painterResource':'androidx.compose.ui.res.painterResource','AlertDialog':'androidx.compose.material3.AlertDialog','FilterChip':'androidx.compose.material3.FilterChip',
  'rememberScrollState':'androidx.compose.foundation.rememberScrollState','Role':'androidx.compose.ui.semantics.Role','TextAlign':'androidx.compose.ui.text.style.TextAlign',
 }
 UNITS = {'dp':'androidx.compose.ui.unit.dp','sp':'androidx.compose.ui.unit.sp'}

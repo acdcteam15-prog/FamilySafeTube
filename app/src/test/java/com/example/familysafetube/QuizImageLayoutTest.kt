@@ -136,6 +136,16 @@ class QuizImageLayoutTest {
         assertEquals(2.5f, QuizImageLayout.meanAspect(listOf(9f)), 0.001f)
     }
 
+    @Test fun forcedColumn_alwaysStacksOneAboveTheOther_evenWhereARowWouldBeBigger() {
+        for (n in 2..3) for ((w, h) in listOf(328f to 520f, 1000f to 380f, 600f to 700f, 800f to 400f)) for (aspect in listOf(0f, 0.67f, 1f, 1.5f)) {
+            val p = QuizImageLayout.plan(n, w, h, aspect = aspect, only = ImageArrangement.COLUMN)
+            assertEquals("n=$n ${w}x$h aspect=$aspect", ImageArrangement.COLUMN, p.arrangement)
+        }
+        // on a wide screen the free choice would be a row; the quiz must still stack
+        assertEquals(ImageArrangement.ROW, QuizImageLayout.plan(3, 1000f, 380f).arrangement)
+        assertEquals(ImageArrangement.COLUMN, QuizImageLayout.plan(3, 1000f, 380f, only = ImageArrangement.COLUMN).arrangement)
+    }
+
     @Test fun zeroOrNegativeCount_isTreatedAsOne() {
         assertEquals(QuizImageLayout.plan(1, 328f, 520f), QuizImageLayout.plan(0, 328f, 520f))
     }

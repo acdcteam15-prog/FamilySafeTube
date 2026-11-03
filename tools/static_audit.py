@@ -183,7 +183,7 @@ for v in re.findall(r"version\.ref\s*=\s*\"([^\"]+)\"", catalog):
 check("version catalog aliases resolve", problems)
 
 # 6. Every file the build reads exists
-problems = [f"missing {p}" for p in ("app/proguard-rules.pro", "gradle/wrapper/gradle-wrapper.properties")
+problems = [f"missing {p}" for p in ("app/proguard-rules.pro", "gradle/wrapper/gradle-wrapper.properties", "local.properties.example")
             if not os.path.exists(os.path.join(ROOT, p))]
 check("required build files present", problems)
 
@@ -271,8 +271,8 @@ for name in ("build.yml", "release.yml"):
         problems.append(f"{name}: needs a 'chmod +x gradlew' step (Windows cannot set the executable bit)")
     if not any("testDebugUnitTest" in str(st.get("run", "")) for st in steps):
         problems.append(f"{name}: unit tests are not run")
-    if "DRIVE_API_KEY" in wf_text[name]:
-        problems.append(f"{name}: still passes DRIVE_API_KEY (the app signs in with Google now; no API key)")
+    if "DRIVE_API_KEY" not in wf_text[name]:
+        problems.append(f"{name}: the Drive API key (secrets.DRIVE_API_KEY) is not passed to the build")
 rel = wf_text.get("release.yml", "")
 parser_src = read(os.path.join(MAIN, "java/com/example/familysafetube/update/UpdateParser.kt"))
 rx = re.search(r'APK_NAME\s*=\s*Regex\("""(.+?)""",\s*RegexOption\.IGNORE_CASE', parser_src)
@@ -296,15 +296,8 @@ used_secrets = set(re.findall(r"secrets\.(\w+)", rel)) - {"GITHUB_TOKEN"}
 set_secrets = set(re.findall(r"Set-Secret\s+'(\w+)'", ps1))
 if used_secrets - set_secrets:
     problems.append(f"release.yml uses secrets the wizard never saves: {sorted(used_secrets - set_secrets)}")
-if "DRIVE_API_KEY" in app_gradle:
-    problems.append("app/build.gradle.kts must not read or embed a Drive API key (sign-in replaced it)")
-if "play.services.auth" not in app_gradle:
-    problems.append("app/build.gradle.kts lacks the Google sign-in dependency (play-services-auth)")
-_all_kt = "\n".join(read(f) for f in glob.glob(os.path.join(MAIN, "java/**/*.kt"), recursive=True))
-if "DRIVE_API_KEY" in _all_kt or "&key=" in _all_kt:
-    problems.append("Kotlin sources still use a Drive API key; every Drive call must carry the user's OAuth token")
-if "alt=media" not in _all_kt or "Bearer" not in _all_kt:
-    problems.append("Drive downloads must use the authorised API (alt=media + Bearer token)")
+if "DRIVE_API_KEY" not in app_gradle or "System.getenv(\"DRIVE_API_KEY\")" not in app_gradle:
+    problems.append("app/build.gradle.kts must read DRIVE_API_KEY from the environment")
 dep = read(os.path.join(ROOT, ".github/dependabot.yml")) if os.path.exists(os.path.join(ROOT, ".github/dependabot.yml")) else ""
 if "package-ecosystem: gradle" not in dep or "package-ecosystem: github-actions" not in dep:
     problems.append(".github/dependabot.yml must cover gradle and github-actions")
@@ -326,7 +319,7 @@ if '"${context.packageName}.fileprovider"' not in code:
 fp = read(os.path.join(MAIN, "res/xml/file_paths.xml"))
 if 'path="updates/"' not in fp or 'File(context.cacheDir, "updates")' not in code:
     problems.append("file_paths.xml cache path 'updates/' and the code's cache folder 'updates' must match")
-for field in ("UPDATE_REPO",):
+for field in ("UPDATE_REPO", "DRIVE_API_KEY"):
     if f'buildConfigField("String", "{field}"' not in app_gradle:
         problems.append(f"app/build.gradle.kts lacks the BuildConfig field {field}")
 vp = read(os.path.join(ROOT, "version.properties"))
@@ -419,6 +412,68 @@ for dens, n in (("mdpi", 48), ("hdpi", 72), ("xhdpi", 96), ("xxhdpi", 144), ("xx
 if "AppLogo(" not in read(os.path.join(MAIN, "java/com/example/familysafetube/ui/HomeScreen.kt")):
     problems.append("the home screen header must show the logo (AppLogo)")
 check("logo and launcher icon: layers, sizes, no duplicate resources", problems)
+
+# 14. The blurred backdrop of the image viewer must show the WHOLE picture. A CENTER_CROP backdrop that is also loaded with a square
+#     override() is cropped twice and shows only a magnified strip from the middle (a regression found on a real phone).
+adapter = read(os.path.join(MAIN, "java/com/example/familysafetube/ImageAdapter.kt"))
+blk = re.search(r"val ivBg = ImageView\(ctx\)\.apply \{(.*?)\n        \}", adapter, re.S)
+problems = []
+if not blk:
+    problems.append("cannot find the ivBg (blurred backdrop) definition in ImageAdapter.kt")
+else:
+    if "ScaleType.FIT_XY" not in blk.group(1):
+        problems.append("the blurred backdrop (ivBg) must use ScaleType.FIT_XY so it shows the whole picture, not a cropped middle strip")
+    if "ScaleType.CENTER_CROP" in blk.group(1) and ".override(BG_DECODE_PX" in adapter:
+        problems.append("ivBg is CENTER_CROP and loaded with override(): the picture is cropped twice")
+check("image viewer: blurred backdrop shows the whole picture", problems)
+
+# 15. The full-app lock, exact timing, stacked quiz pictures, the celebration and the quiz-round limit
+J = os.path.join(MAIN, "java/com/example/familysafetube")
+def src(rel): return read(os.path.join(J, rel))
+problems = []
+overlay = src("ui/LockOverlay.kt")
+if re.search(r"\bText\(", overlay) or "R.drawable.ic_lock" not in overlay:
+    problems.append("the lock screen must show only the padlock (no Text, uses R.drawable.ic_lock)")
+approot = src("ui/AppRoot.kt")
+m = re.search(r"if \(state\.lock != LockKind\.NONE\) \{(.*?)\} else \{(.*?)\n    \}\n", approot, re.S)
+if not m or "LockOverlay(" not in m.group(1) or "HomeScreen(" not in m.group(2) or "HomeScreen(" in m.group(1):
+    problems.append("AppRoot must show ONLY the LockOverlay while locked and compose the HomeScreen only otherwise")
+for act in ("ImagePlayerActivity", "OfflinePlayerActivity", "YoutubePlayerActivity", "QuizActivity", "MatchActivity"):
+    t = src(act + ".kt")
+    if t.count("Policy.nextCheckDelayMs(") < 2:
+        problems.append(f"{act}: both the ticker and onResume must schedule with Policy.nextCheckDelayMs (exact lock, no fixed 10 s wait)")
+    if re.search(r"postDelayed\((this|ticker|usageTicker),\s*(checkInterval\w*|10_000L?)\)", t):
+        problems.append(f"{act}: still re-checks on a fixed interval instead of exactly when time runs out")
+    if "Policy.lockKind(" not in t:
+        problems.append(f"{act}: must leave silently (no toast) when the full lock takes over")
+for f, needle in (("ui/HomeScreen.kt", "TimeRules.minutesLabel("), ("ImagePlayerActivity.kt", "TimeRules.minutesLabel("),
+                  ("OfflinePlayerActivity.kt", "TimeRules.minutesLabel("), ("YoutubePlayerActivity.kt", "TimeRules.minutesLabel(")):
+    if needle not in src(f): problems.append(f"{f}: the time-left label must round UP (TimeRules.minutesLabel), it showed 0m with time still running")
+if "leftMins.toInt()" in src("YoutubePlayerActivity.kt"): problems.append("YoutubePlayerActivity: time-left label rounds down again")
+lv = dict(re.findall(r'(BABY|TODDLER|OLDER)\("\w+", (\d),', src("QuizLevel.kt")))
+if lv != {"BABY": "2", "TODDLER": "2", "OLDER": "3"}:
+    problems.append(f"quiz levels must be Baby=2, Toddler=2, Older=3 pictures (found {lv})")
+if "only = ImageArrangement.COLUMN" not in src("ui/QuizScreen.kt"):
+    problems.append("the quiz must stack its pictures (QuizImageLayout.plan(..., only = ImageArrangement.COLUMN))")
+rc = src("ui/QuizScreen.kt"); cel = src("ui/CelebrationLayer.kt")
+if "CelebrationLayer(" not in rc or "DancingLogo(" not in rc:
+    problems.append("the end-of-round screen must show the CelebrationLayer and the DancingLogo")
+for needle, what in (("activeBursts(", "fireworks"), ("starPoints(", "falling stars"), ("drawRect(", "confetti")):
+    if needle not in cel: problems.append(f"CelebrationLayer lacks {what}")
+if "fun lockNow()" not in approot or "fun unlock(" not in approot or "btn_lock_now" not in src("ui/HomeScreen.kt"):
+    problems.append("the parent 'Lock now' button / HomeActions.lockNow / unlock are missing")
+main_act = src("MainActivity.kt")
+if "override fun lockNow()" not in main_act or "override fun unlock(" not in main_act:
+    problems.append("MainActivity must implement lockNow() and unlock()")
+if "quizRoundsReached()" not in main_act or "recordQuizRound()" not in rc or "Keys.QUIZ_ROUNDS_LIMIT" not in src("ui/ParentFlows.kt"):
+    problems.append("the daily quiz-round limit is not wired (MainActivity.openQuiz, QuizScreen.finishRound, Settings)")
+for f in ["MainActivity.kt"] + [os.path.join("ui", n) for n in os.listdir(os.path.join(J, "ui")) if n.endswith(".kt") and n not in ("QuizScreen.kt", "MatchScreen.kt")]:
+    if re.search(r"KEEP_SCREEN_ON|keepScreenOn", src(f)):
+        problems.append(f"{f}: must not keep the screen on (the screen has to turn off by itself while locked)")
+vm = src("MainViewModel.kt")
+if "MutableStateFlow(MainUiState(lock = Policy.lockKind(app)))" not in vm or "copy(lock = Policy.lockKind(" not in vm:
+    problems.append("MainViewModel must know the lock instantly (a locked app must never flash its home screen)")
+check("lock screen, exact timing, stacked quiz, celebration, round limit", problems)
 
 print()
 if failures:

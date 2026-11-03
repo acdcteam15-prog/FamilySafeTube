@@ -17,10 +17,12 @@ object UsageKeys {
     const val USAGE_PREFIX = "usage_"
     const val LOCKS_PREFIX = "locks_"
     const val BONUS_PREFIX = "bonus_"
+    const val ROUNDS_PREFIX = "rounds_"
 
     private val USAGE_RE = Regex("""^usage_(\d{8})_(.+)$""")
     private val LOCKS_RE = Regex("""^locks_(\d{8})$""")
     private val BONUS_RE = Regex("""^bonus_(\d{8})$""")
+    private val ROUNDS_RE = Regex("""^rounds_(\d{8})$""")
 
     fun dayStamp(d: LocalDate): String =
         String.format(Locale.US, "%04d%02d%02d", d.year, d.monthValue, d.dayOfMonth)
@@ -30,6 +32,8 @@ object UsageKeys {
     fun locksKey(d: LocalDate) = "$LOCKS_PREFIX${dayStamp(d)}"
     /** Extra minutes granted for this day (from the parent's remote settings.json). */
     fun bonusKey(d: LocalDate) = "$BONUS_PREFIX${dayStamp(d)}"
+    /** Quiz rounds finished on this day (for the optional "rounds per day" limit). */
+    fun roundsKey(d: LocalDate) = "$ROUNDS_PREFIX${dayStamp(d)}"
 
     /** "usage_20261006_offline_videos" -> ("20261006", "offline_videos"); null if not a usage key. */
     fun parseUsageKey(name: String): Pair<String, String>? =
@@ -40,7 +44,7 @@ object UsageKeys {
 
     /** The day stamp a key belongs to (usage, locks or bonus), or null for any other key. */
     fun dayOf(name: String): String? = parseUsageKey(name)?.first ?: parseLocksKey(name)
-        ?: BONUS_RE.matchEntire(name)?.groupValues?.get(1)
+        ?: BONUS_RE.matchEntire(name)?.groupValues?.get(1) ?: ROUNDS_RE.matchEntire(name)?.groupValues?.get(1)
 
     /** True if the key is a usage/locks key from before [cutoff]. yyyyMMdd stamps sort chronologically. */
     fun isOlderThan(name: String, cutoff: LocalDate): Boolean {

@@ -75,7 +75,9 @@ object QuizImageLayout {
         availableHeightDp: Float,
         gapDp: Float = GAP_DP,
         /** Shape (width / height) of the pictures, from [meanAspect]; 0 = unknown. */
-        aspect: Float = 0f
+        aspect: Float = 0f,
+        /** Use only this arrangement (the quiz stacks its pictures: one above the other, never side by side). */
+        only: ImageArrangement? = null
     ): ImagePlan {
         val n = count.coerceAtLeast(1)
         val w = availableWidthDp.coerceAtLeast(MIN_SIDE)
@@ -96,6 +98,7 @@ object QuizImageLayout {
         candidates += ImagePlan(ImageArrangement.COLUMN, cw, ch)
 
         // First maximum wins, so ties prefer ROW, then GRID, then COLUMN.
-        return candidates.maxByOrNull { it.area }!!
+        val pool = if (only == null) candidates else candidates.filter { it.arrangement == only }.ifEmpty { candidates }
+        return pool.maxByOrNull { it.area }!!
     }
 }

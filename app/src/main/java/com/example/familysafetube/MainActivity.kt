@@ -35,7 +35,6 @@ import com.example.familysafetube.ui.HomeActions
 class MainActivity : AppCompatActivity(), HomeActions {
 
     private val viewModel: MainViewModel by viewModels()
-    private val drive = DriveAccessFlow(this) { sync() }   // Google sign-in for Drive (see DriveAccessFlow)
     private val tickHandler = Handler(Looper.getMainLooper())
 
     /** True when the update notification was tapped: the UI then asks for the parental PIN and opens the update screen. */
@@ -44,7 +43,12 @@ class MainActivity : AppCompatActivity(), HomeActions {
     private val liveTick = object : Runnable {
         override fun run() {
             viewModel.refresh()
-            tickHandler.postDelayed(this, 30_000)
+            // The home screen does not use up time, but bedtime can start (or a bedtime extension end) while it is open:
+            // look again exactly then. Otherwise (or when already locked) every 30 seconds is plenty.
+            val left = Policy.minutesLeft(this@MainActivity, null)
+            val locked = Policy.lockKind(this@MainActivity) != LockKind.NONE
+            val delay = if (locked || left * 60_000f > 30_000f) 30_000L else LockPolicy.nextCheckDelayMs(left)
+            tickHandler.postDelayed(this, delay)
         }
     }
 
@@ -108,7 +112,7 @@ class MainActivity : AppCompatActivity(), HomeActions {
     override fun onResume() {
         super.onResume()
         viewModel.refresh()
-        tickHandler.postDelayed(liveTick, 30_000)
+        tickHandler.postDelayed(liveTick, 1_000L)
         try {
             registerReceiver(
                 syncCompleteReceiver,
@@ -177,7 +181,13 @@ class MainActivity : AppCompatActivity(), HomeActions {
         })
     }
 
-    override fun openQuiz() = startActivity(Intent(this, QuizActivity::class.java))
+    override fun openQuiz() {
+        if (Policy.quizRoundsReached()) {
+            Toast.makeText(this, getString(R.string.quiz_done_today_toast), Toast.LENGTH_LONG).show()
+            return
+        }
+        startActivity(Intent(this, QuizActivity::class.java))
+    }
 
     override fun openMatch() = startActivity(Intent(this, MatchActivity::class.java))
 
@@ -196,10 +206,19 @@ class MainActivity : AppCompatActivity(), HomeActions {
 
     override fun settingsSaved() = viewModel.refresh()
 
-    // ── Google Drive (delegated to DriveAccessFlow) ───────────────────────────
-    override fun driveSignIn(done: (String) -> Unit) = drive.driveSignIn(done)
-    override fun driveSignOut(done: () -> Unit) = drive.driveSignOut(done)
-    override fun driveCheck(create: Boolean, done: (String) -> Unit) = drive.driveCheck(create, done)
+    /** "Lock now": the whole app is covered by the lock screen until the parent enters the PIN. */
+    override fun lockNow() {
+        Policy.lockNow()
+        viewModel.refresh()
+    }
+
+    /** The PIN was entered on the lock screen: opens a manual lock, or adds [minutes] on a time-up / bedtime lock. */
+    override fun unlock(minutes: Int) {
+        Policy.unlock(this, minutes)
+        viewModel.refresh()
+        tickHandler.removeCallbacks(liveTick)
+        tickHandler.postDelayed(liveTick, 1_000L)      // re-aim the exact timer at the new deadline
+    }
 
     // ── Battery optimization ──────────────────────────────────────────────────
     @Suppress("BatteryLife")

@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.familysafetube.LockKind
 import com.example.familysafetube.MainUiState
 
 /** Where the parent currently is. Only one parent dialog is ever open at a time. */
@@ -21,12 +22,14 @@ private sealed interface Flow {
     data object Picker : Flow
     /** [fromSettings]: closing returns to Settings (otherwise to the home screen). */
     data class Updates(val fromSettings: Boolean) : Flow
+    /** After the PIN on a time-up / bedtime lock: add minutes, open Settings, or stay locked. */
+    data object GrantTime : Flow
 }
 
-private enum class GateNext { SETTINGS, RESET_TIMER, UPDATES }
+private enum class GateNext { SETTINGS, RESET_TIMER, UPDATES, UNLOCK }
 
 /** Everything the Activity does for the UI (intents, toasts that need Policy, sync). */
-interface HomeActions : DriveUi {
+interface HomeActions {
     fun sync()
     /** Returns true if the mode may open now (otherwise a toast was shown and a tamper attempt logged). */
     fun tryOpen(category: String): Boolean
@@ -38,6 +41,10 @@ interface HomeActions : DriveUi {
     fun resetTimer()
     fun clearStorage()
     fun settingsSaved()
+    /** Cover the whole app with the lock screen until the parent enters the PIN. */
+    fun lockNow()
+    /** Open the lock after the PIN: a manual lock simply opens; otherwise [minutes] of extra time are added. */
+    fun unlock(minutes: Int)
 }
 
 @Composable
@@ -58,18 +65,32 @@ fun AppRoot(
         }
     }
 
-    HomeScreen(
-        state = state,
-        onSync = actions::sync,
-        onYoutube = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_YOUTUBE)) actions.openYoutube() },
-        onOffline = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_VIDEOS)) actions.openOffline() },
-        onImages = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) flow = Flow.Picker },
-        onQuiz = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) actions.openQuiz() },
-        onMatch = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) actions.openMatch() },
-        onUpdates = { flow = Flow.Gate(GateNext.UPDATES) },
-        onSettings = { flow = Flow.Gate(GateNext.SETTINGS) },
-        onResetTimer = { flow = Flow.Gate(GateNext.RESET_TIMER) }
-    )
+    // When the lock switches on, whatever parent dialog was open is closed: the lock covers everything.
+    var wasLocked by remember { mutableStateOf(state.lock != LockKind.NONE) }
+    LaunchedEffect(state.lock) {
+        val locked = state.lock != LockKind.NONE
+        if (locked && !wasLocked) flow = Flow.None
+        wasLocked = locked
+    }
+
+    if (state.lock != LockKind.NONE) {
+        // Nothing of the app is shown while locked, only a padlock. The parent PIN opens it.
+        LockOverlay(onTap = { flow = Flow.Gate(GateNext.UNLOCK) })
+    } else {
+        HomeScreen(
+            state = state,
+            onSync = actions::sync,
+            onYoutube = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_YOUTUBE)) actions.openYoutube() },
+            onOffline = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_VIDEOS)) actions.openOffline() },
+            onImages = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) flow = Flow.Picker },
+            onQuiz = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) actions.openQuiz() },
+            onMatch = { if (actions.tryOpen(com.example.familysafetube.Policy.CAT_IMAGES)) actions.openMatch() },
+            onUpdates = { flow = Flow.Gate(GateNext.UPDATES) },
+            onSettings = { flow = Flow.Gate(GateNext.SETTINGS) },
+            onResetTimer = { flow = Flow.Gate(GateNext.RESET_TIMER) },
+            onLockNow = actions::lockNow
+        )
+    }
 
     when (val f = flow) {
         Flow.None -> Unit
@@ -80,6 +101,8 @@ fun AppRoot(
                     GateNext.SETTINGS -> flow = Flow.Settings
                     GateNext.RESET_TIMER -> { actions.resetTimer(); flow = Flow.None }
                     GateNext.UPDATES -> flow = Flow.Updates(fromSettings = false)
+                    GateNext.UNLOCK ->
+                        if (state.lock == LockKind.MANUAL) { actions.unlock(0); flow = Flow.None } else flow = Flow.GrantTime
                 }
             },
             onDismiss = close
@@ -92,8 +115,7 @@ fun AppRoot(
             onClearStorage = { flow = Flow.ClearConfirm },
             onDashboard = { flow = Flow.Dashboard },
             onQuizEditor = { flow = Flow.QuizEditor },
-            onUpdates = { flow = Flow.Updates(fromSettings = true) },
-            drive = actions
+            onUpdates = { flow = Flow.Updates(fromSettings = true) }
         )
 
         Flow.PinMenu -> PinMenuDialog(
@@ -113,6 +135,12 @@ fun AppRoot(
         Flow.QuizEditor -> QuizEditorDialog(onDismiss = { flow = Flow.Settings })
 
         is Flow.Updates -> UpdatesDialog(onDismiss = { flow = if (f.fromSettings) Flow.Settings else Flow.None })
+
+        Flow.GrantTime -> GrantTimeDialog(
+            onGrant = { minutes -> actions.unlock(minutes); flow = Flow.None },
+            onOpenSettings = { flow = Flow.Settings },
+            onDismiss = close
+        )
 
         Flow.Picker -> CategoryPickerDialog(
             onPick = { display, category -> flow = Flow.None; actions.openImages(display, category) },
