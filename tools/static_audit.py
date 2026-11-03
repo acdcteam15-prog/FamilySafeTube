@@ -475,6 +475,28 @@ if "MutableStateFlow(MainUiState(lock = Policy.lockKind(app)))" not in vm or "co
     problems.append("MainViewModel must know the lock instantly (a locked app must never flash its home screen)")
 check("lock screen, exact timing, stacked quiz, celebration, round limit", problems)
 
+# 16. The wizard must never merge (a merge left conflict markers inside files and pushed them, breaking the build),
+#     and no file in the project may contain merge-conflict markers
+problems = []
+ps_code = "\n".join(l for l in ps1.splitlines() if not l.strip().startswith("#"))
+for bad in ("pull --rebase", "--autostash", "git merge ", "git stash", "git pull"):
+    if bad in ps_code:
+        problems.append(f"the wizard must never merge or stash ('{bad}'): it can leave conflict markers in files and push them")
+for need in ("reset --soft origin/main", "function Assert-NoConflictMarkers"):
+    if need not in ps_code: problems.append(f"the wizard lacks '{need}'")
+if ps_code.count("Assert-NoConflictMarkers") < 3:
+    problems.append("Assert-NoConflictMarkers must run in Commit-All and in Do-Rebuild (definition + 2 calls)")
+conflict_re = re.compile(r"^(<{7}|>{7}) ", re.M)
+TEXT = (".kt", ".kts", ".xml", ".md", ".yml", ".yaml", ".ps1", ".bat", ".toml", ".properties", ".py", ".pro", ".txt", ".gitignore", ".gitattributes")
+for f in glob.glob(os.path.join(ROOT, "**/*"), recursive=True) + glob.glob(os.path.join(ROOT, ".*")) + glob.glob(os.path.join(ROOT, ".github/**/*"), recursive=True):
+    if os.path.isfile(f) and f.endswith(TEXT) and "/.git/" not in f:
+        try:
+            if conflict_re.search(open(f, encoding="utf-8", errors="ignore").read()):
+                problems.append(f"merge-conflict markers in {os.path.relpath(f, ROOT)}")
+        except OSError:
+            pass
+check("no merge, no conflict markers", problems)
+
 print()
 if failures:
     print(f"{len(failures)} problem(s) found.")

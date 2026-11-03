@@ -43,6 +43,10 @@ A private repository keeps the APK itself private as well (see the end of this f
 
 If a build fails, the wizard saves the error as `build-error.txt` and opens it. Copy all of it and send it to Claude.
 
+## If the wizard says "This folder contains broken files"
+It found leftover merge-conflict markers (lines starting with `<<<<<<<`) in some files and stopped on purpose, because they would break the build.
+Unzip the newest `FamilySafeTube.zip` **into the project folder, replacing all files**, and run **Rebuild-APK.bat** again.
+
 ## The wizard menu
 | # | What it does |
 |---|---|

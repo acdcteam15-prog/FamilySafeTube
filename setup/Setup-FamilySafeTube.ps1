@@ -109,24 +109,34 @@ function Read-RepoFromGit {
     return $false
 }
 
-# Makes this folder's history fit on top of GitHub's. A freshly unzipped folder has its own unrelated history:
-# keep its files, but base them on what GitHub already has, so the push is accepted without overwriting anything.
+# Makes this folder's history fit on top of GitHub's, WITHOUT ever merging.
+# The files in THIS folder (a fresh unzip) are the truth. If GitHub's latest commit is not already underneath, the branch
+# is moved to GitHub's latest commit while every file in the folder stays exactly as it is. The next commit then holds
+# exactly the difference, and the push is an ordinary fast-forward. Nothing is merged, so there is nothing to conflict
+# (an earlier version used "git pull --rebase", which could leave <<<<<<< conflict markers inside files and push them).
 function Sync-Remote {
     & git fetch origin main 2>$null | Out-Null
     if ($LASTEXITCODE -ne 0) { return }          # GitHub repository is still empty
     & git merge-base --is-ancestor origin/main HEAD 2>$null
     if ($LASTEXITCODE -eq 0) { return }          # already on top of GitHub's history
-    & git merge-base HEAD origin/main *> $null
-    if ($LASTEXITCODE -ne 0) {
-        Say '   This folder is a new copy of the project: attaching it to the existing repository history.' 'Gray'
-        & git reset --soft origin/main
-    } else {
-        & git pull --rebase --autostash origin main 2>$null | Out-Null
+    Say '   Attaching this folder to the existing GitHub history (the files in this folder are kept exactly as they are).' 'Gray'
+    & git reset --soft origin/main
+    if ($LASTEXITCODE -ne 0) { throw 'Could not attach this folder to the GitHub history.' }
+}
+
+# Safety net: never send a file that still contains merge-conflict markers (they break the build and mean something went wrong).
+function Assert-NoConflictMarkers {
+    $hits = @(& git grep --no-index --exclude-standard -n -I -E '^(<<<<<<<|>>>>>>>) ' -- . 2>$null)
+    if ($hits.Count -gt 0) {
+        Say '   These files contain merge-conflict markers and would break the build:' 'Red'
+        $hits | Select-Object -First 8 | ForEach-Object { Say "     $_" 'Red' }
+        throw 'This folder contains broken files. Unzip the newest FamilySafeTube.zip INTO this folder (replace all files), then run this again.'
     }
 }
 
 function Commit-All([string]$message) {
     & git add -A
+    Assert-NoConflictMarkers
     & git update-index --chmod=+x gradlew 2>$null     # Windows cannot mark it executable; the build machine needs that
     & git diff --cached --quiet
     if ($LASTEXITCODE -ne 0) { & git commit -m $message | Out-Null; return $true }
@@ -407,6 +417,7 @@ function Do-Rebuild {
     Say "   Working folder: $Root" 'Gray'
     & git config core.autocrlf false
     Sync-Remote
+    Assert-NoConflictMarkers
 
     & git add -A
     $files = @(& git diff --cached --name-only)

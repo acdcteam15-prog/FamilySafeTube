@@ -127,11 +127,6 @@ dependencies {
     implementation(libs.androidx.work.runtime)          // WorkManager (includes Kotlin/coroutine APIs)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.okhttp)                         // Drive sync and the in-app updater
-<<<<<<< Updated upstream
-    implementation(libs.material)                       // needed by the Google sign-in screens (their theme extends Material Components)
-    implementation(libs.play.services.auth)             // Google sign-in for Drive (no API key in the app)
-=======
->>>>>>> Stashed changes
 
     // Media
     implementation(libs.media3.exoplayer)
