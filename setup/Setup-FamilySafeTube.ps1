@@ -134,7 +134,38 @@ function Assert-NoConflictMarkers {
     }
 }
 
+# Unzipping over a folder never deletes anything, so files from OLDER versions stay behind (an old workflow, old layouts,
+# an old Drive engine ...) and break the build. Every zip lists the files it contains in setup\files.txt: files in the
+# project's own folders that are NOT on that list are old leftovers. They are shown, and removed after a yes.
+$script:StaleChecked = $false
+function Remove-StaleFiles {
+    if ($script:StaleChecked) { return }
+    $script:StaleChecked = $true
+    $list = Join-Path $Root 'setup\files.txt'
+    if (-not (Test-Path $list)) { return }
+    $keep = @{}
+    foreach ($line in (Get-Content $list)) { $t = $line.Trim(); if ($t) { $keep[$t.ToLowerInvariant()] = $true } }
+    if ($keep.Count -lt 50) { return }          # a damaged list must never delete anything
+    $stale = @()
+    foreach ($dir in @('app/src', '.github', 'gradle', 'setup', 'tools', 'docs')) {
+        $full = Join-Path $Root ($dir -replace '/', '\')
+        if (-not (Test-Path $full)) { continue }
+        foreach ($f in (Get-ChildItem -Path $full -Recurse -File -Force)) {
+            $rel = ($f.FullName.Substring($Root.Length).TrimStart('\', '/')) -replace '\\', '/'
+            if (-not $keep.ContainsKey($rel.ToLowerInvariant())) { $stale += $rel }
+        }
+    }
+    if ($stale.Count -eq 0) { return }
+    Say "   $($stale.Count) old file(s) from earlier versions are still in this folder and would break the build, for example:" 'Yellow'
+    $stale | Select-Object -First 12 | ForEach-Object { Say "     $_" 'Yellow' }
+    $answer = Ask '   Remove them? (yes/no)' 'yes'
+    if ($answer -notmatch '^(y|yes)$') { Say '   Left in place.' 'Yellow'; return }
+    foreach ($rel in $stale) { Remove-Item -LiteralPath (Join-Path $Root ($rel -replace '/', '\')) -Force -ErrorAction SilentlyContinue }
+    Ok "$($stale.Count) old file(s) removed"
+}
+
 function Commit-All([string]$message) {
+    Remove-StaleFiles
     & git add -A
     Assert-NoConflictMarkers
     & git update-index --chmod=+x gradlew 2>$null     # Windows cannot mark it executable; the build machine needs that
@@ -206,13 +237,13 @@ function Set-Secret([string]$name, [string]$value) {
     if ($LASTEXITCODE -ne 0) { throw "Could not save the secret $name on GitHub." }
 }
 
-# Prints the key's SHA-1 so it can be pasted into the Google Cloud restriction of the Drive API key.
+# Prints the key's SHA-1: Google Cloud needs it for the Android OAuth client (Google sign-in).
 function Show-Fingerprint([string]$file, [string]$alias, [string]$storePw) {
     $kt = Find-Keytool
     if (-not $kt) { return }
     $out = (& $kt -list -v -keystore $file -storepass $storePw -alias $alias 2>$null | Out-String)
     if ($out -match 'SHA1:\s*([0-9A-Fa-f:]+)') {
-        Say "   Signing key SHA-1 (for the Google Cloud key restriction): $($Matches[1])" 'Yellow'
+        Say "   Signing key SHA-1 (for the Google sign-in client, see step 5): $($Matches[1])" 'Yellow'
     }
 }
 
@@ -296,22 +327,17 @@ function Read-Secret([string]$prompt) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($ptr) }
 }
 
-function Ensure-DriveKey([bool]$force = $false) {
-    Step 'Step 5 - Google Drive key (lets the app download videos and pictures)'
-    $list = GhOut secret list --repo $script:Repo
-    if (($list -match 'DRIVE_API_KEY') -and (-not $force)) { Ok 'A Drive key is already saved'; return }
-
-    Say '   The app reads your public Google Drive folders with an API key. It is built into the APK.' 'Gray'
-    Say '   IMPORTANT: anyone who can download the APK can read that key, so restrict it in Google Cloud:' 'Yellow'
-    Say '     Credentials > your key > API restrictions: Google Drive API only,' 'Yellow'
-    Say '     Application restrictions: Android apps > package com.example.familysafetube + the SHA-1 shown in step 4.' 'Yellow'
-    $k = (Read-Secret '   Paste the Drive API key (Enter = skip for now)').Trim()
-    if ([string]::IsNullOrWhiteSpace($k)) {
-        Say '   Skipped. The app will install, but Drive sync will not work until you choose 4 in the menu.' 'Yellow'
-        return
-    }
-    Set-Secret 'DRIVE_API_KEY' $k
-    Ok 'Drive key saved in GitHub (as a secret only you can read)'
+function Show-GoogleSignInSteps {
+    Step 'Step 5 - Google sign-in (one-time, in Google Cloud; no key goes into the app)'
+    Say '   The app signs in with each person''s own Google account, so there is NO Drive API key any more.' 'Gray'
+    Say '   Do this once at https://console.cloud.google.com (use the SHA-1 printed in step 4):' 'Yellow'
+    Say '     1. Create a project, then APIs & Services > Library > enable "Google Drive API".' 'Yellow'
+    Say '     2. OAuth consent screen: External, add the scopes drive.readonly and drive.file, then Publish app (In production).' 'Yellow'
+    Say '        (Do NOT leave it in Testing: sign-ins would expire every 7 days. Up to 100 family and friends can use it.)' 'Yellow'
+    Say '     3. Credentials > Create credentials > OAuth client ID > Android:' 'Yellow'
+    Say '        package com.example.familysafetube + the SHA-1 of your signing key.' 'Yellow'
+    Say '   Nothing to paste here. Full guide: SETUP.md, section "Google sign-in".' 'Gray'
+    Say '   Also: delete the OLD Drive API key in Google Cloud (Credentials). It was public.' 'Yellow'
 }
 
 # ---------------------------------------------------------------- build + download
@@ -388,7 +414,7 @@ function Do-Everything {
     Ensure-Login
     Ensure-Repo
     Ensure-Signing $false
-    Ensure-DriveKey $false
+    Show-GoogleSignInSteps
     $notes = Ask "What's new? (shown in the app's update screen)" 'First build from GitHub'
     Run-Release $notes
 }
@@ -410,13 +436,10 @@ function Do-Rebuild {
         }
     }
 
-    if (-not ((GhOut secret list --repo $script:Repo) -match 'DRIVE_API_KEY')) {
-        Say '   Note: no Drive key is saved yet, so this APK cannot sync. Choose 4 in the START-HERE menu to add it.' 'Yellow'
-    }
-
     Say "   Working folder: $Root" 'Gray'
     & git config core.autocrlf false
     Sync-Remote
+    Remove-StaleFiles
     Assert-NoConflictMarkers
 
     & git add -A
@@ -446,11 +469,8 @@ function Do-Signing {
     Ensure-Signing $true
 }
 
-function Do-DriveKey {
-    Ensure-Tools
-    Ensure-Login
-    if (-not (Read-RepoFromGit)) { throw 'No repository yet. Choose 1 first.' }
-    Ensure-DriveKey $true
+function Do-GoogleSteps {
+    Show-GoogleSignInSteps
 }
 
 function Do-Follow {
@@ -493,7 +513,7 @@ while ($true) {
     Write-Host '   1) First time: set everything up and build my APK'
     Write-Host '   2) Rebuild my APK after changes (same as Rebuild-APK.bat)'
     Write-Host '   3) Change or re-save the signing key'
-    Write-Host '   4) Add or change the Google Drive key'
+    Write-Host '   4) Show the Google sign-in set-up steps'
     Write-Host '   5) Show the last build error'
     Write-Host '   6) Open the Releases page'
     Write-Host '   7) A build is already running - wait for it and download the APK'
@@ -503,7 +523,7 @@ while ($true) {
         '1' { Guard { Do-Everything } }
         '2' { Guard { Do-Rebuild } }
         '3' { Guard { Do-Signing } }
-        '4' { Guard { Do-DriveKey } }
+        '4' { Guard { Do-GoogleSteps } }
         '5' { Guard { Show-LastError } }
         '6' { Guard { Open-Releases } }
         '7' { Guard { Do-Follow } }

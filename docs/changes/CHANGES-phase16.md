@@ -1,40 +1,20 @@
-# Phase 16 - full-app lock, exact timer, stacked quiz, celebration
+# Phase 16 - the blurred backdrop shows the whole picture
 
-Requested: congratulations with animations at the end of the quiz; quiz pictures one above the other, never side by side; a timer at 0 must
-lock (the viewer kept working and scrolling); a lock that covers the whole app and shows nothing inside.
-Chosen in the questions: the parent PIN unlocks and can add minutes; a plain dark screen with just a padlock; 2 pictures for Baby and Toddler,
-3 (stacked) for Older; fireworks + confetti/falling stars + a jumping logo; extras: a parent "Lock now" button, the screen turns off by itself
-while locked, and a daily limit on quiz rounds.
+Reported: the blur behind a picture in image mode covered only the "face" (a magnified middle part), not the full body.
 
-## Why "0m" kept working (found in the code)
-1. The label rounded DOWN, so "0m" meant "under one minute left", not zero.
-2. Every screen re-checked the limits only every 10 seconds, so time ran on, and scrolling kept working, for up to 10 seconds after the limit.
-3. When the limit hit, the viewer only closed itself; the home screen stayed fully open. Nothing was locked.
+## Cause (a regression from phase 13)
+When the unmaintained blur library was removed, the backdrop became a tiny `override(128, 128)` load into a `CENTER_CROP` ImageView.
+Glide adds a centre-crop step for `CENTER_CROP` (checked in the Glide 5.0.9 source, `RequestBuilder.into(ImageView)`), so the picture was first
+cropped to a 128 x 128 square from its middle, and the ImageView then cropped that square again to the tall phone screen.
 
-## What changed
-- **Exact timing**: each screen now schedules its next check for the moment the time runs out (`LockPolicy.nextCheckDelayMs`, at the latest every
-  10 s as a safety net): image viewer, offline videos, YouTube, quiz, matching game, and the home screen (for bedtime starting, or a bedtime
-  extension ending). Bedtime is measured to the second.
-- **Label**: rounded UP (`TimeRules.minutesLabel`), so it never says 0m while time remains.
-- **Full-app lock** (`LockOverlay`): when time is up, at bedtime, or after "Lock now", the app shows ONLY a padlock on a black screen; the home
-  screen is not even drawn behind it. The player screens close silently (no toast) when the lock takes over. The lock is known instantly on
-  start/resume, so a locked app never flashes its home screen. The screen is not kept awake, so it turns off by itself.
-- **Opening it**: tap the padlock, enter the parent PIN. A manual lock simply opens. On "time is up" or bedtime a dialog offers +5/+10/+15/+30
-  minutes, "Settings" (so limits can be changed) or "Not now". Time up: the minutes are added to today's limit. Bedtime: bedtime is lifted for
-  that long (plus the minutes if today's limit is also used up, otherwise the child would be locked again at once).
-- **"Lock now"** button next to Settings and Reset timer on the home screen (no PIN needed to lock; the PIN is needed to open).
-- **Quiz pictures**: always stacked one above the other (`QuizImageLayout.plan(..., only = COLUMN)`). Baby 2, Toddler 2 (was 3), Older 3.
-- **Celebration**: fireworks bursts, confetti and falling five-pointed stars, the logo hopping and wiggling (squashing when it lands), then the
-  stars, the new sticker and the buttons. Used by the quiz and the matching game. The maths is pure and tested (`Celebration`).
-- **Quiz rounds per day** (Settings > Quiz, default no limit; 3, 5, 10 or 20): after the last allowed round the end screen has no "Again" button
-  and says see you tomorrow; the home card says "Done for today" and a tap explains. Matching boards are not counted.
+## Fix
+The backdrop ImageView is `FIT_XY`: Glide then adds no crop (it maps to centre-inside), the tiny bitmap keeps the picture's shape, and the whole
+picture is stretched over the whole screen. It is blurred (Android 12+: GPU blur; older phones: the tiny picture scaled up), so the stretch is not visible.
+The main picture on top is unchanged.
 
-## Tests
-301 unit tests (was 263): lock kinds and priority, bedtime extensions, exact check delays (never before the deadline, never a busy loop),
-grants, round limit, label rounding, per-day round counter, forced stacking, and the celebration maths.
-The audit has a new check (lock screen shows only a padlock, the home is not drawn while locked, every screen schedules exactly, no label rounds
-down, level picture counts, stacking, celebration pieces, round limit wiring, no keep-screen-on, instant lock); each rule was proven by breaking it.
+## Guard
+`tools/static_audit.py` check 14 fails if the backdrop is `CENTER_CROP` again, or `CENTER_CROP` together with `override()`.
 
-## Not checked here (no Android SDK, no phone)
-The look and smoothness of the animations, the padlock screen on a real device, and the whole Compose code compile (the GitHub build is the first
-real compile). Note: the lock covers the app, not the phone; a child can still leave the app and use other apps.
+## Not checked here
+The result on a real phone (only a simulation with the logo). If you prefer the backdrop to fill the screen by cropping instead (less of the picture,
+no stretching), that is a one-word change (`CENTER_CROP` without `override()`).

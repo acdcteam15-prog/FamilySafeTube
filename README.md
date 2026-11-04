@@ -25,13 +25,18 @@ Later: **Rebuild-APK.bat**, or *Settings > App updates* on the phone (behind the
 > Play Protect may show its own "unknown app" prompt for any sideloaded APK: tap **More details > Install anyway**.
 
 ## Setup
-1. Create a Google Cloud API key restricted to the **Drive API** and to this app (package `com.example.familysafetube` + the signing key's SHA-1, which the wizard prints).
-   The wizard asks for it and stores it as a GitHub secret (`DRIVE_API_KEY`); it is never in source.
-   For builds on your own PC put `DRIVE_API_KEY=your_key` in `local.properties` (see `local.properties.example`).
-2. Drive layout (folder IDs are constants `FOLDER_*` in `SyncWorker.kt`; the folders must be shared "anyone with the link: viewer"):
-   - videos folder: your `.mp4/.mkv/.mov/.webm` files, `youtube.txt` (one Shorts URL/ID per line), optional `settings.json`
-   - one folder each for animals, letters, veg&fruits, other (images; file names like `animals_lion.png`)
-3. First launch syncs automatically; a daily sync runs at the time set in Settings.
+1. **Google sign-in (once, in Google Cloud).** There is no Drive API key in the app. Each person signs in with their own Google account
+   (*Settings > Google Drive > Sign in with Google*, behind the parent PIN) and the app reads **their own** Drive. Steps are in
+   [SETUP.md](SETUP.md), section "Google sign-in" (create an OAuth client of type Android with the package name and your signing key's SHA-1).
+2. **Drive layout** (in the signed-in user's My Drive; names are matched ignoring upper/lower case). *Settings > Google Drive > Create missing folders* makes them for you:
+   ```
+   My Drive/Offline/                 your .mp4/.mkv/.mov/.webm files, Youtube.txt (one Shorts URL/ID per line), optional settings.json
+   My Drive/Offline/Images/Animals   images, file names like lion.png
+   My Drive/Offline/Images/Letters
+   My Drive/Offline/Images/Other
+   My Drive/Offline/Images/Veg&fruits
+   ```
+3. First launch after signing in syncs automatically; a daily sync runs at the time set in Settings.
 
 ## Quiz cards (in-app editor)
 Settings → **Edit quiz cards**. Every picture in the animals and veg&fruits folders is a card; the quiz works with no editing
@@ -54,7 +59,7 @@ Enable "Apply settings from Drive" in Settings. Every key is optional; an invali
   "bonus": { "id": "2026-10-07-a", "minutes": 15, "expires": "2026-10-07" }
 }
 ```
-`bonus` is granted once per `id`. Anyone who can *edit* the Drive folder can change the limits.
+`bonus` is granted once per `id`. Only people who can edit the signed-in account's Drive (normally just the parent) can change the limits.
 
 ## Architecture
 ```
@@ -62,7 +67,7 @@ ui/            Compose screens (Home, Settings, Gate, Dashboard, Quiz) + theme
 MainViewModel  home-screen state;   Policy  "may the child use X now?";   Schedule  weekday/weekend rules
 SettingsStore  DataStore-backed PrefsStore (in-memory reads, ordered background writes)
 UsageRepository  per-day usage / bonus / lock attempts (history for the dashboard)
-SyncWorker     Drive → local mirror (paginated, change-detecting, deletion-guarded) + RemoteSettingsApplier
+SyncWorker     Drive → local mirror (signed-in user's own Drive, found by folder name via DriveLayout/DriveApi/DriveAuth) (paginated, change-detecting, deletion-guarded) + RemoteSettingsApplier
 *Player*       view-based full-screen players (Immersive, WindDownMonitor, UsageTracker.Session)
 ```
 Pure-JVM logic (unit-tested): `TimeRules, Schedule, WindDown, GateRules, PinHasher, NavigationPolicy,

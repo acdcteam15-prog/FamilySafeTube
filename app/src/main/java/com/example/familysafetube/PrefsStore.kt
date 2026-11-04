@@ -36,6 +36,9 @@ object Keys {
     val WEEKEND_BED_START = stringPreferencesKey("weekend_bedtime_start")
     val WEEKEND_BED_END   = stringPreferencesKey("weekend_bedtime_end")
 
+    // Google account used for Drive (empty = signed out)
+    val DRIVE_ACCOUNT     = stringPreferencesKey("drive_account")
+
     // Remote settings from Drive (settings.json)
     val REMOTE_ENABLED    = booleanPreferencesKey("remote_settings_enabled")
     val REMOTE_LAST_OK    = booleanPreferencesKey("remote_last_ok")

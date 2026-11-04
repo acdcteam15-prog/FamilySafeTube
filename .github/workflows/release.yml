@@ -65,14 +65,6 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
 
-      - name: Check the Drive API key
-        env:
-          DRIVE_API_KEY: ${{ secrets.DRIVE_API_KEY }}
-        run: |
-          if [ -z "$DRIVE_API_KEY" ]; then
-            echo "::warning::Secret DRIVE_API_KEY is missing, so this APK cannot sync from Google Drive. Run START-HERE.bat and choose 4 to add it, then rebuild."
-          fi
-
       - name: Unit tests
         run: ./gradlew --no-daemon :app:testDebugUnitTest
 
@@ -82,7 +74,6 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          DRIVE_API_KEY: ${{ secrets.DRIVE_API_KEY }}
         run: ./gradlew --no-daemon :app:assembleRelease
 
       - name: Name the APK and write checksum

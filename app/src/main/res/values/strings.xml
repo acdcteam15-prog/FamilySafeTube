@@ -112,7 +112,9 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="sync_connecting_drive">Connecting to Google Drive…</string>
     <string name="sync_scanning">Scanning Google Drive…</string>
     <string name="sync_downloading">Downloading…</string>
-    <string name="sync_no_key">❌ Drive API key missing — add DRIVE_API_KEY to local.properties</string>
+    <string name="sync_not_signed_in">🔑 Not signed in to Google — parent: open Settings › Google Drive</string>
+    <string name="sync_signin_again">🔑 Google sign-in expired — parent: open Settings › Google Drive and sign in again</string>
+    <string name="sync_folders_missing">⚠️ Folders missing in your Drive: %1$s — open Settings › Google Drive</string>
     <string name="sync_gave_up">❌ Sync gave up after retries</string>
     <string name="sync_failed_short">❌ Sync failed</string>
     <string name="sync_partial">⚠️ Partial sync — couldn\'t read: %1$s</string>
@@ -309,6 +311,24 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="update_err_version">The downloaded file has an unexpected version.</string>
     <string name="update_err_failed">The update did not work.</string>
     <string name="update_err_install">Android could not install the update.</string>
+    <string name="settings_drive_label">☁️  Google Drive</string>
+    <string name="drive_hint">Your Drive needs: Offline (videos, Youtube.txt, settings.json) and Offline/Images with the folders Animals, Letters, Other, Veg&amp;fruits.</string>
+    <string name="drive_not_signed_in">Not signed in</string>
+    <string name="drive_account">Signed in as %1$s</string>
+    <string name="drive_sign_in">Sign in with Google</string>
+    <string name="drive_sign_out">Sign out</string>
+    <string name="drive_check">Check folders</string>
+    <string name="drive_create">Create missing folders</string>
+    <string name="drive_working">Working…</string>
+    <string name="drive_all_ok">✅ All folders found</string>
+    <string name="drive_missing">⚠️ Missing: %1$s</string>
+    <string name="drive_created">✅ Created: %1$s</string>
+    <string name="drive_signed_in_msg">✅ Signed in as %1$s</string>
+    <string name="drive_signed_out_msg">Signed out</string>
+    <string name="drive_err">❌ %1$s</string>
+    <string name="drive_err_cancelled">Sign-in was cancelled</string>
+    <string name="drive_err_scope">Drive access was not granted. Sign in again and allow every permission that is asked for.</string>
+    <string name="drive_err_need_signin">Sign in first</string>
     <!-- lock screen, quiz rounds per day -->
     <string name="lock_description">Locked. Tap, then enter the parent PIN.</string>
     <string name="lock_grant_title">Add extra time?</string>

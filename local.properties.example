@@ -1,5 +1,4 @@
-## Only needed for builds on your own PC. The GitHub build gets the key from the wizard (START-HERE.bat, menu 4).
-## Copy to local.properties (git-ignored).
+## Copy to local.properties (git-ignored). Android Studio adds sdk.dir automatically.
 ## Create a NEW Drive API key in Google Cloud Console and restrict it:
 ##   - API restriction: Google Drive API only
 ##   - Application restriction: Android apps -> package com.example.familysafetube + your SHA-1

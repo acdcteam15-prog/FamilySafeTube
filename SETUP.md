@@ -14,7 +14,7 @@ Two files do everything:
    - opens a web page: sign in to GitHub and type the short code shown in the window (create a free account first if you have none),
    - creates your repository and uploads the project,
    - sets up the **signing key** (see below),
-   - asks for your **Google Drive key** (see below),
+   - explains the one-time **Google sign-in** set-up (see below),
    - builds the signed APK on GitHub (~10 min) and **downloads it into the `APK` folder**.
 3. Copy the APK to your phone and open it. Done.
 
@@ -26,13 +26,25 @@ Android installs an update only when it is signed with the same key as the app o
 
 After saving the key the wizard prints its **SHA-1**. You need it in the next step.
 
-### The Google Drive key (the second question)
-The app reads your Drive folders with an API key. It is built into the APK, so **anyone who can download the APK can read it**.
-Make a NEW key (the key that was in the old project's source must be considered public, delete it) and restrict it in Google Cloud:
-*Credentials > your key > API restrictions: Google Drive API only; Application restrictions: Android apps, package
-`com.example.familysafetube` and the SHA-1 the wizard printed.*
-Paste the key into the wizard (typing is hidden). You can press Enter to skip, and add it later with menu **4**.
-A private repository keeps the APK itself private as well (see the end of this file).
+### Google sign-in (the second step; replaces the old Drive key)
+The app no longer contains any Google key. Every person signs in with their own Google account and the app reads that account's own Drive.
+You set this up **once** in Google Cloud (https://console.cloud.google.com):
+
+1. **Delete the old Drive API key** (Credentials). It was published, treat it as public. Also make the GitHub repository private or accept that the old key stays in its history, which is harmless once the key is deleted.
+2. Create a project, then *APIs & Services > Library*: enable **Google Drive API**.
+3. *APIs & Services > OAuth consent screen* (or "Google Auth platform"): audience **External**; app name FamilySafeTube; add the scopes
+   `.../auth/drive.readonly` (read the Offline folders) and `.../auth/drive.file` (create missing folders).
+4. **Publish the app** ("In production"). Do not leave it in *Testing*: sign-ins expire after 7 days there.
+   Without Google's verification, up to 100 users can use it and each sees an "unverified app" screen once (**Advanced > Go to FamilySafeTube**). That is fine for family and friends.
+5. *Credentials > Create credentials > OAuth client ID > Android*: package name `com.example.familysafetube` and the **SHA-1 of your signing key** (the wizard prints it in step 4).
+   Nothing from this client is pasted anywhere: Google matches it by package + signing key.
+   If you also run debug builds from Android Studio, add a second Android client with the debug key's SHA-1.
+
+On each phone: *Settings (parent PIN) > Google Drive > Sign in with Google*, then **Create missing folders** (or make them yourself), then put the videos and pictures in them.
+The phone needs Google Play services (all normal Android phones have it).
+
+**Folder layout** (in My Drive, names not case-sensitive): `Offline` (videos, `Youtube.txt`, `settings.json`) and `Offline/Images/` with `Animals`, `Letters`, `Other`, `Veg&fruits`.
+Google Docs/Sheets files and shortcuts are ignored; only real files are downloaded.
 
 ## Every later update
 1. Claude gives you a new project zip: unzip it over your folder (same place, replace all files).
@@ -47,13 +59,18 @@ If a build fails, the wizard saves the error as `build-error.txt` and opens it. 
 It found leftover merge-conflict markers (lines starting with `<<<<<<<`) in some files and stopped on purpose, because they would break the build.
 Unzip the newest `FamilySafeTube.zip` **into the project folder, replacing all files**, and run **Rebuild-APK.bat** again.
 
+## "Old files from earlier versions are still in this folder"
+Unzipping over a folder never deletes anything, so files from older versions can stay behind and break the build.
+Every zip contains `setup\files.txt`, the list of its files. Rebuild-APK.bat shows any file in the project's own folders that is **not** on that list and
+asks "Remove them?". Answer **yes**. Your own things (APK folder, keys, `local.properties`, README) are never touched.
+
 ## The wizard menu
 | # | What it does |
 |---|---|
 | 1 | First time: set everything up and build the APK |
 | 2 | Rebuild after changes (same as Rebuild-APK.bat) |
 | 3 | Change or re-save the signing key |
-| 4 | Add or change the Google Drive key |
+| 4 | Show the Google sign-in set-up steps |
 | 5 | Show the last build error |
 | 6 | Open the Releases page |
 | 7 | A build is already running: wait for it and download the APK |
@@ -69,7 +86,7 @@ The visible version number ("1.3.0") is in `version.properties`; Rebuild-APK.bat
 All versions are in `gradle/libs.versions.toml`. GitHub's **Dependabot** opens a weekly pull request when something is outdated.
 
 ## Private repository?
-Works, and keeps the APK (and the Drive key inside it) away from strangers. Each phone then needs a read-only token:
+Works, and keeps the APK away from strangers. Each phone then needs a read-only token:
 *Settings > App updates > Advanced*. A public repository needs nothing.
 
 ## Play Protect
