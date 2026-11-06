@@ -3,6 +3,7 @@ package com.example.familysafetube
 import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -53,6 +54,18 @@ object Keys {
     val QUIZ_PHONICS      = booleanPreferencesKey("quiz_phonics")          // include letter <-> word questions
     val MATCH_ENABLED     = booleanPreferencesKey("match_enabled")         // show the matching game
     val QUIZ_STICKERS_JSON = stringPreferencesKey("quiz_stickers_json")    // collected sticker ids, in order
+    // Celebration voice (Settings > Celebration)
+    val CELEB_ON_ANSWER   = booleanPreferencesKey("celeb_on_answer")       // celebrate after every right answer
+    val CELEB_ON_ROUND    = booleanPreferencesKey("celeb_on_round")        // celebrate at the end of every round
+    val CELEB_VOICE       = stringPreferencesKey("celeb_voice")            // recordings | phone | off
+    val CELEB_PHRASES     = stringPreferencesKey("celeb_phrases")          // ticked phone-voice phrases, e.g. "BRAVO,WELL_DONE"
+    val CELEB_USE_NAME    = booleanPreferencesKey("celeb_use_name")        // say the child's name
+    val CELEB_NAME        = stringPreferencesKey("celeb_name")
+    val CELEB_PITCH       = floatPreferencesKey("celeb_pitch")             // phone voice pitch, 1.0 = normal
+    val CELEB_RATE        = floatPreferencesKey("celeb_rate")              // phone voice speed, 1.0 = normal
+    val CELEB_EFFECT      = stringPreferencesKey("celeb_effect")           // cheer | fanfare | applause | sparkle | none
+    val CELEB_CLIP_ANSWER = stringPreferencesKey("celeb_clip_answer")      // chosen recording for a right answer, "" = random
+    val CELEB_CLIP_ROUND  = stringPreferencesKey("celeb_clip_round")       // chosen recording for the end of a round, "" = random
     val MANUAL_LOCK       = booleanPreferencesKey("manual_lock")           // the parent pressed "Lock now"
     val BEDTIME_EXTENSION_UNTIL = longPreferencesKey("bedtime_extension_until_ms")   // bedtime lifted by the parent until then
     val QUIZ_ROUNDS_LIMIT = intPreferencesKey("quiz_rounds_limit")         // finished quiz rounds allowed per day, 0 = no limit

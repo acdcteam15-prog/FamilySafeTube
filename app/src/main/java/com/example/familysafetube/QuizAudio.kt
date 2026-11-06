@@ -88,6 +88,7 @@ class QuizAudio(private val context: Context) {
         val next = { playFrom(steps, index + 1, gen, onDone) }
         when (val step = steps[index]) {
             is AudioStep.Tts -> speak(step, gen, next)
+            is AudioStep.Effect -> playEffect(step, gen, next)
             is AudioStep.RecordedFile -> playFile(QuizRepository.audioFile(context, step.fileName), gen, next)
             is AudioStep.BuiltIn -> {
                 val res = BuiltInSounds.resFor(step.key)
@@ -108,6 +109,8 @@ class QuizAudio(private val context: Context) {
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
                         done()                                    // no voice for this language: skip the step
                     } else {
+                        engine.setPitch(step.pitch)                  // the celebration's voice style (1.0 = normal)
+                        engine.setSpeechRate(step.rate)
                         val id = "quiz-${++utteranceCounter}"
                         utteranceDone[id] = { if (gen == generation) done() }
                         engine.speak(step.text, TextToSpeech.QUEUE_FLUSH, null, id)
@@ -172,9 +175,18 @@ class QuizAudio(private val context: Context) {
     fun cheer() = playTone(ToneSynth.CHEER)
     fun oops() = playTone(ToneSynth.OOPS)
 
-    private fun playTone(notes: List<Note>) {
+    private fun playTone(notes: List<Note>) = playPcm(ToneSynth.render(notes), ToneSynth.durationMs(notes))
+
+    /** A celebration sound (cheer, fanfare, applause, sparkle) as a step of a plan: the next step starts when it has finished. */
+    private fun playEffect(step: AudioStep.Effect, gen: Int, done: () -> Unit) {
+        val ms = ToneSynth.effectDurationMs(step.effect, step.long)
+        if (ms <= 0) { done(); return }
+        playPcm(ToneSynth.renderEffect(step.effect, step.long), ms)
+        handler.postDelayed({ if (gen == generation) done() }, ms.toLong())
+    }
+
+    private fun playPcm(pcm: ShortArray, durationMs: Int) {
         try {
-            val pcm = ToneSynth.render(notes)
             val track = AudioTrack.Builder()
                 .setAudioAttributes(
                     AudioAttributes.Builder()
@@ -198,7 +210,7 @@ class QuizAudio(private val context: Context) {
             handler.postDelayed({
                 try { track.release() } catch (_: Exception) {}
                 tracks.remove(track)
-            }, ToneSynth.durationMs(notes) + 300L)
+            }, durationMs + 300L)
         } catch (e: Exception) {
             Log.w(TAG, "Could not play feedback tone: ${e.message}")
         }

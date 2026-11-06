@@ -11,6 +11,7 @@ folders you control; the parent sets time limits, bedtime, a weekend schedule, a
 - **Images mode** – animals / letters / vegetables & fruits / other, with optional voice-over.
 - **Matching mode** – tap two that go together: a letter and the picture that starts with it, a digit and that many stars, or an animal's sound and its picture. Finishing a board can win a sticker.
 - **Lock** – when the daily time is up, at bedtime, or when a parent presses **Lock now**, the whole app is replaced by a plain dark screen with a padlock. Tapping it asks for the parent PIN, which can add 5-30 extra minutes (or open Settings). It happens exactly when the time reaches zero.
+- **Celebration voice** – after every right answer and at the end of every round the app plays a sound (cheer, fanfare, applause or sparkle) and then a voice: your own recordings, or the phone voice with several phrases ("Well done!", "Bravo!" ...) and, if you like, the child's name. Everything is set in *Settings > Celebration*, with Test buttons.
 - **Quiz mode** – hear the name (and the animal's sound), or just the animal's sound, then tap the right picture out of 2-3. Arabic or English. After 5 right answers a calm "well done" screen offers Again or Bye-bye. Counts as Images time under the normal limits. Cards are edited in the app (see below).
 
 ## Parent controls (Settings, behind a PIN or maths gate)

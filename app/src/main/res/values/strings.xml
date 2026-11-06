@@ -202,7 +202,6 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="editor_import_too_big">That file is too big (5 MB max).</string>
     <string name="editor_done">Done</string>
     <string name="settings_quiz_sound_only">Include sound-only questions (hear the animal, pick the picture)</string>
-    <string name="quiz_well_done">Well done!</string>
     <string name="quiz_bye">Bye-bye</string>
     <string name="quiz_again">Again</string>
     <string name="dash_quiz_title">🧩 Quiz progress</string>
@@ -339,4 +338,34 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="quiz_last_round_today">That was the last round for today. See you tomorrow!</string>
     <string name="settings_quiz_rounds">Quiz rounds per day</string>
     <string name="settings_quiz_rounds_none">No limit</string>
+    <!-- celebration voice -->
+    <string name="celeb_title">Celebration</string>
+    <string name="celeb_on_answer">After every right answer</string>
+    <string name="celeb_on_round">At the end of every round</string>
+    <string name="celeb_sound">Sound effect</string>
+    <string name="celeb_effect_cheer">Cheer</string>
+    <string name="celeb_effect_fanfare">Fanfare</string>
+    <string name="celeb_effect_applause">Applause</string>
+    <string name="celeb_effect_sparkle">Sparkle</string>
+    <string name="celeb_effect_none">None</string>
+    <string name="celeb_voice">Voice</string>
+    <string name="celeb_voice_recordings">My recordings</string>
+    <string name="celeb_voice_phone">Phone voice</string>
+    <string name="celeb_voice_off">No voice</string>
+    <string name="celeb_use_name">Say the child\'s name</string>
+    <string name="celeb_name_label">Child\'s name</string>
+    <string name="celeb_phrases">Phrases the phone voice may say</string>
+    <string name="celeb_style">Voice style</string>
+    <string name="celeb_style_normal">Normal</string>
+    <string name="celeb_style_playful">Playful</string>
+    <string name="celeb_style_gentle">Gentle</string>
+    <string name="celeb_style_excited">Excited</string>
+    <string name="celeb_pitch">Pitch</string>
+    <string name="celeb_speed">Speed</string>
+    <string name="celeb_recording_answer">Recording for a right answer</string>
+    <string name="celeb_recording_round">Recording for the end of a round</string>
+    <string name="celeb_clip_random">Random</string>
+    <string name="celeb_recordings_hint">No recordings yet, so the phone voice is used. Record your own under Edit quiz cards &gt; Praise voices.</string>
+    <string name="celeb_test_answer">▶ Test: right answer</string>
+    <string name="celeb_test_round">▶ Test: end of round</string>
 </resources>

@@ -202,7 +202,6 @@
     <string name="editor_import_too_big">هذا الملف كبير جدًا (الحد الأقصى 5 ميغابايت).</string>
     <string name="editor_done">تم</string>
     <string name="settings_quiz_sound_only">تضمين أسئلة الصوت فقط (اسمع الحيوان ثم اختر الصورة)</string>
-    <string name="quiz_well_done">أحسنت!</string>
     <string name="quiz_bye">مع السلامة</string>
     <string name="quiz_again">مرة أخرى</string>
     <string name="dash_quiz_title">🧩 تقدم الاختبار</string>
@@ -339,4 +338,34 @@
     <string name="quiz_last_round_today">كانت هذه آخر جولة لهذا اليوم. نراك غدًا!</string>
     <string name="settings_quiz_rounds">عدد جولات الاختبار في اليوم</string>
     <string name="settings_quiz_rounds_none">بدون حد</string>
+    <!-- celebration voice -->
+    <string name="celeb_title">الاحتفال</string>
+    <string name="celeb_on_answer">بعد كل إجابة صحيحة</string>
+    <string name="celeb_on_round">في نهاية كل جولة</string>
+    <string name="celeb_sound">المؤثر الصوتي</string>
+    <string name="celeb_effect_cheer">هتاف</string>
+    <string name="celeb_effect_fanfare">أبواق الاحتفال</string>
+    <string name="celeb_effect_applause">تصفيق</string>
+    <string name="celeb_effect_sparkle">بريق</string>
+    <string name="celeb_effect_none">بدون</string>
+    <string name="celeb_voice">الصوت</string>
+    <string name="celeb_voice_recordings">تسجيلاتي</string>
+    <string name="celeb_voice_phone">صوت الهاتف</string>
+    <string name="celeb_voice_off">بدون صوت</string>
+    <string name="celeb_use_name">نطق اسم الطفل</string>
+    <string name="celeb_name_label">اسم الطفل</string>
+    <string name="celeb_phrases">العبارات التي قد يقولها صوت الهاتف</string>
+    <string name="celeb_style">أسلوب الصوت</string>
+    <string name="celeb_style_normal">عادي</string>
+    <string name="celeb_style_playful">مرح</string>
+    <string name="celeb_style_gentle">هادئ</string>
+    <string name="celeb_style_excited">متحمس</string>
+    <string name="celeb_pitch">حدّة الصوت</string>
+    <string name="celeb_speed">السرعة</string>
+    <string name="celeb_recording_answer">التسجيل عند الإجابة الصحيحة</string>
+    <string name="celeb_recording_round">التسجيل عند نهاية الجولة</string>
+    <string name="celeb_clip_random">عشوائي</string>
+    <string name="celeb_recordings_hint">لا توجد تسجيلات بعد، لذلك يُستخدم صوت الهاتف. سجّل صوتك من تعديل بطاقات الاختبار &gt; أصوات التشجيع.</string>
+    <string name="celeb_test_answer">▶ تجربة: إجابة صحيحة</string>
+    <string name="celeb_test_round">▶ تجربة: نهاية الجولة</string>
 </resources>

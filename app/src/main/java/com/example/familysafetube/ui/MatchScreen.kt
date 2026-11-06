@@ -47,6 +47,9 @@ import com.example.familysafetube.MatchPair
 import com.example.familysafetube.MatchSide
 import com.example.familysafetube.MatchState
 import com.example.familysafetube.Phonics
+import com.example.familysafetube.CelebrationEvent
+import com.example.familysafetube.CelebrationStore
+import com.example.familysafetube.CelebrationVoice
 import com.example.familysafetube.PraiseEvent
 import com.example.familysafetube.PraisePicker
 import com.example.familysafetube.QuizAudio
@@ -82,6 +85,8 @@ fun MatchScreen(cards: List<QuizCard>, onExit: () -> Unit) {
     val lastClip = remember { HashMap<PraiseEvent, String>() }
     fun praiseClip(event: PraiseEvent): String? =
         PraisePicker.pick(praise.clipsFor(event), lastClip[event])?.also { lastClip[event] = it }
+    // The celebration (Settings > Celebration): a sound, then a voice, after a right answer and at the end of a round.
+    val celebrationVoice = remember { CelebrationVoice(CelebrationStore.load(), praise, lang) }
 
     val objects = remember(cards) { cards.filter { Phonics.isObject(it) } }
     val letters = remember { QuizRepository.letterCards() }
@@ -126,16 +131,8 @@ fun MatchScreen(cards: List<QuizCard>, onExit: () -> Unit) {
         newSticker = awarded?.let { id -> cards.firstOrNull { it.id == id } }
         if (awarded != null) QuizRepository.addSticker(awarded)
         roundOver = true
-        val clip = praiseClip(PraiseEvent.ROUND_DONE)
-        if (clip != null) {
-            audio.play(listOf(AudioStep.RecordedFile(clip)))
-        } else {
-            audio.cheer()
-            scope.launch {
-                delay(900)
-                audio.play(listOf(AudioStep.Tts(spoken(ctx, lang, R.string.quiz_well_done), lang)))
-            }
-        }
+        val celebration = celebrationVoice.steps(CelebrationEvent.ROUND)
+        if (celebration.isNotEmpty()) audio.play(celebration)
     }
 
     fun onTap(side: MatchSide, pairId: String) {
@@ -166,12 +163,11 @@ fun MatchScreen(cards: List<QuizCard>, onExit: () -> Unit) {
                         }
                     }
                 }
-                val clip = praiseClip(PraiseEvent.CORRECT)
-                if (clip != null) {
-                    audio.play(listOf(AudioStep.RecordedFile(clip))) { scope.launch { delay(250); reveal() } }
+                val celebration = celebrationVoice.steps(CelebrationEvent.ANSWER)
+                if (celebration.isNotEmpty()) {
+                    audio.play(celebration) { scope.launch { delay(250); reveal() } }
                 } else {
-                    audio.cheer()
-                    scope.launch { delay(1_000); reveal() }
+                    reveal()
                 }
             }
         }

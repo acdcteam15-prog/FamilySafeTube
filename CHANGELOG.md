@@ -1,4 +1,4 @@
-# FamilySafeTube — changelog (phases 1–18)
+# FamilySafeTube — changelog (phases 1–19)
 
 Details per phase are in `docs/changes/`.
 
@@ -22,6 +22,7 @@ Details per phase are in `docs/changes/`.
 | 16 | Blurred backdrop shows the whole picture | Fixes a regression from the library clean-up: the blurred backdrop of the image viewer showed only a magnified strip from the middle of the picture |
 | 17 | Full-app lock, exact timer, stacked quiz, celebration | The whole app is covered by a padlock when time is up, at bedtime or on "Lock now" (parent PIN opens it and can add minutes); the lock happens exactly at 0; quiz pictures are stacked (2 for Baby and Toddler, 3 for Older); fireworks, confetti, falling stars and a dancing logo end each round; optional quiz rounds per day |
 | 18 | Wizard never merges; old files removed | Fixes the "TOML syntax error" (the wizard's old `git pull --rebase` could push conflict markers); every zip lists its files and the wizard offers to delete old leftovers; the lock/quiz work merged into the Google sign-in version |
+| 19 | Celebration voice, configurable | After every right answer and at the end of every round: a sound (cheer, fanfare, applause, sparkle) then a voice (your recordings or the phone voice with several phrases, optionally the child's name); phrases, voice style (pitch, speed), the recording to use and Test buttons in Settings > Celebration |
 
 Tests: 86 JVM unit tests (time rules, schedule, PIN, lockout, navigation policy, usage repository, settings form,
 remote settings, JSON parser, quiz rules, wind-down).

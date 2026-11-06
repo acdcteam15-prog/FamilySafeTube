@@ -504,6 +504,29 @@ for f in glob.glob(os.path.join(ROOT, "**/*"), recursive=True) + glob.glob(os.pa
             pass
 check("no merge, no conflict markers", problems)
 
+# 18. The celebration voice: configurable in Settings, used by the quiz and the matching game, every setting saved and applied
+problems = []
+for scr in ("ui/QuizScreen.kt", "ui/MatchScreen.kt"):
+    t = src(scr)
+    for need in ("CelebrationVoice(CelebrationStore.load()", "celebrationVoice.steps(CelebrationEvent.ANSWER)", "celebrationVoice.steps(CelebrationEvent.ROUND)"):
+        if need not in t: problems.append(f"{scr}: lacks '{need}'")
+    if "audio.cheer()" in t: problems.append(f"{scr}: must not play the fixed cheer; the celebration is configurable (Settings > Celebration)")
+    if "quiz_well_done" in t: problems.append(f"{scr}: the hard-coded 'Well done' is gone; phrases come from CelebrationPhrases")
+qa = src("QuizAudio.kt")
+for need in ("is AudioStep.Effect -> playEffect(step, gen, next)", "handler.postDelayed({ if (gen == generation) done() }, ms.toLong())", "setPitch(step.pitch)", "setSpeechRate(step.rate)"):
+    if need not in qa: problems.append(f"QuizAudio.kt lacks '{need}' (sound effects must be waited for; the voice style must be applied)")
+pf = src("ui/ParentFlows.kt")
+for need in ("CelebrationSection(", "CelebrationStore.write(p, celebration)", "CelebrationPlan.build("):
+    if need not in pf: problems.append(f"ParentFlows.kt (Settings) lacks '{need}'")
+store = src("CelebrationStore.kt")
+for key in re.findall(r"val (CELEB_\w+)\s*=", src("PrefsStore.kt")):
+    if store.count("Keys." + key) < 2: problems.append(f"Keys.{key} must be both read and written by CelebrationStore")
+sec = src("ui/CelebrationSection.kt")
+for control in ("config.copy(onAnswer", "config.copy(onRound", "config.copy(effect", "config.copy(voice", "config.copy(useName", "config.copy(name",
+                "CelebrationSettings.withPhrase(", "config.copy(style", "config.withClip(", "onTest(CelebrationEvent.ANSWER)", "onTest(CelebrationEvent.ROUND)"):
+    if control not in sec: problems.append(f"Settings > Celebration has no control for '{control}'")
+check("celebration voice: configurable, used by both games, saved and applied", problems)
+
 # 17. setup/files.txt (the list of files in this project, used by the wizard to delete OLD leftovers) must match the real files exactly
 problems = []
 SKIP_DIRS = {".git", "__pycache__", "build", ".gradle", "APK", ".idea"}

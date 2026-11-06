@@ -66,6 +66,9 @@ import com.example.familysafetube.ImageArrangement
 import com.example.familysafetube.ImagePlan
 import com.example.familysafetube.Keys
 import com.example.familysafetube.QuizAudio
+import com.example.familysafetube.CelebrationEvent
+import com.example.familysafetube.CelebrationStore
+import com.example.familysafetube.CelebrationVoice
 import com.example.familysafetube.PraiseEvent
 import com.example.familysafetube.Policy
 import com.example.familysafetube.PraisePicker
@@ -126,6 +129,8 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
     val lastClip = remember { HashMap<PraiseEvent, String>() }        // so the same clip isn't played twice in a row
     fun praiseClip(event: PraiseEvent): String? =
         PraisePicker.pick(praise.clipsFor(event), lastClip[event])?.also { lastClip[event] = it }
+    // The celebration (Settings > Celebration): a sound, then a voice, after a right answer and at the end of a round.
+    val celebrationVoice = remember { CelebrationVoice(CelebrationStore.load(), praise, lang) }
     val audio = remember { QuizAudio(ctx) }
     DisposableEffect(Unit) { onDispose { audio.release() } }
 
@@ -194,16 +199,8 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
         roundCorrect.clear()
         newSticker = awarded?.let { id -> cards.firstOrNull { it.id == id } }
         if (awarded != null) QuizRepository.addSticker(awarded)
-        val clip = praiseClip(PraiseEvent.ROUND_DONE)
-        if (clip != null) {
-            audio.play(listOf(AudioStep.RecordedFile(clip)))              // the parent's voice
-        } else {
-            audio.cheer()
-            scope.launch {
-                delay(900)
-                audio.play(listOf(AudioStep.Tts(spoken(ctx, lang, R.string.quiz_well_done), lang)))
-            }
-        }
+        val celebration = celebrationVoice.steps(CelebrationEvent.ROUND)
+        if (celebration.isNotEmpty()) audio.play(celebration)
     }
 
     fun pick(card: QuizCard) {
@@ -231,12 +228,12 @@ fun QuizScreen(cards: List<QuizCard>, onExit: () -> Unit) {
                     }
                 }
             }
-            val clip = praiseClip(PraiseEvent.CORRECT)
-            if (clip != null) {
-                audio.play(listOf(AudioStep.RecordedFile(clip))) { scope.launch { delay(250); reveal() } }
+            // the celebration first (sound, then voice); the name of the animal is revealed when it has finished
+            val celebration = celebrationVoice.steps(CelebrationEvent.ANSWER)
+            if (celebration.isNotEmpty()) {
+                audio.play(celebration) { scope.launch { delay(250); reveal() } }
             } else {
-                audio.cheer()
-                scope.launch { delay(1_100); reveal() }                  // let the cheer finish first
+                reveal()
             }
         } else {
             misses++

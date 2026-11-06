@@ -10,8 +10,10 @@ enum class QuizLang(val code: String, val localeTag: String) {
 
 /** One thing to play, in order. Pure data so the sequencing rules can be unit-tested. */
 sealed interface AudioStep {
-    /** Spoken by the phone's text-to-speech engine. */
-    data class Tts(val text: String, val lang: QuizLang) : AudioStep
+    /** Spoken by the phone's text-to-speech engine. [pitch] and [rate] 1.0 = the normal voice. */
+    data class Tts(val text: String, val lang: QuizLang, val pitch: Float = 1f, val rate: Float = 1f) : AudioStep
+    /** A sound made in code (the celebration cheer, fanfare, applause, sparkle); [long] = the end-of-round version. */
+    data class Effect(val effect: CelebrationEffect, val long: Boolean) : AudioStep
     /** A recorded/imported file inside the quiz-audio folder. */
     data class RecordedFile(val fileName: String) : AudioStep
     /** One of the animal sounds shipped with the app. */

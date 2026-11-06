@@ -67,6 +67,11 @@ import com.example.familysafetube.SyncWorker
 import com.example.familysafetube.UsageTracker
 import com.example.familysafetube.get
 import com.example.familysafetube.getOr
+import androidx.compose.runtime.DisposableEffect
+import com.example.familysafetube.CelebrationPlan
+import com.example.familysafetube.CelebrationStore
+import com.example.familysafetube.QuizAudio
+import com.example.familysafetube.QuizRepository
 
 private fun waitText(ctx: android.content.Context, seconds: Long): String =
     if (seconds < 60) ctx.getString(R.string.wait_seconds, seconds.toInt())
@@ -228,6 +233,9 @@ fun SettingsDialog(
     var quizSoundOnly by remember { mutableStateOf(st.getOr(Keys.QUIZ_SOUND_ONLY, true)) }
     var quizLevel by remember { mutableStateOf(QuizLevel.fromCode(st[Keys.QUIZ_LEVEL])) }
     var quizRounds by remember { mutableStateOf(RoundLimit.sanitize(st.getOr(Keys.QUIZ_ROUNDS_LIMIT, 0))) }
+    var celebration by remember { mutableStateOf(CelebrationStore.load()) }
+    val celebrationAudio = remember { QuizAudio(ctx) }                // for the Test buttons
+    DisposableEffect(Unit) { onDispose { celebrationAudio.release() } }
     var quizPhonics by remember { mutableStateOf(st.getOr(Keys.QUIZ_PHONICS, false)) }
     var matchOn by remember { mutableStateOf(st.getOr(Keys.MATCH_ENABLED, true)) }
     var quizDecks by remember { mutableStateOf(QuizDecks.parse(st[Keys.QUIZ_DECKS])) }
@@ -278,6 +286,7 @@ fun SettingsDialog(
                     p[Keys.QUIZ_PHONICS] = quizPhonics
                     p[Keys.MATCH_ENABLED] = matchOn
                     p[Keys.QUIZ_DECKS] = QuizDecks.format(quizDecks)
+                    CelebrationStore.write(p, celebration)
                 }
                 SyncWorker.scheduleDaily(ctx, replace = true)   // re-anchor the schedule to the new time
                 Toast.makeText(ctx, ctx.getString(R.string.settings_saved), Toast.LENGTH_SHORT).show()
@@ -463,6 +472,21 @@ fun SettingsDialog(
                             )
                         }
                     }
+                    CelebrationSection(
+                        config = celebration,
+                        onChange = { celebration = it },
+                        lang = quizLang,
+                        praise = remember { QuizRepository.praise() },
+                        onTest = { event ->
+                            // plays what the form shows right now, even before it is saved
+                            celebrationAudio.play(
+                                CelebrationPlan.build(
+                                    celebration, event, quizLang,
+                                    QuizRepository.praise().clipsFor(event.praiseEvent), null, null
+                                ).steps
+                            )
+                        }
+                    )
                     SectionTitle(R.string.settings_quiz_decks)
                     for ((deck, label) in listOf(
                         DeckId.AR_LETTERS to R.string.deck_arletters,

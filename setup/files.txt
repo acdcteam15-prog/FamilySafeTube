@@ -17,6 +17,8 @@ app/src/main/java/com/example/familysafetube/BuiltInSounds.kt
 app/src/main/java/com/example/familysafetube/CardAspect.kt
 app/src/main/java/com/example/familysafetube/Categories.kt
 app/src/main/java/com/example/familysafetube/Celebration.kt
+app/src/main/java/com/example/familysafetube/CelebrationStore.kt
+app/src/main/java/com/example/familysafetube/CelebrationVoice.kt
 app/src/main/java/com/example/familysafetube/DriveAccessFlow.kt
 app/src/main/java/com/example/familysafetube/DriveApi.kt
 app/src/main/java/com/example/familysafetube/DriveAuth.kt
@@ -79,6 +81,7 @@ app/src/main/java/com/example/familysafetube/ui/AppLogo.kt
 app/src/main/java/com/example/familysafetube/ui/AppRoot.kt
 app/src/main/java/com/example/familysafetube/ui/CardArtView.kt
 app/src/main/java/com/example/familysafetube/ui/CelebrationLayer.kt
+app/src/main/java/com/example/familysafetube/ui/CelebrationSection.kt
 app/src/main/java/com/example/familysafetube/ui/Dashboard.kt
 app/src/main/java/com/example/familysafetube/ui/DriveUi.kt
 app/src/main/java/com/example/familysafetube/ui/HomeScreen.kt
@@ -136,7 +139,9 @@ app/src/main/res/xml/backup_rules.xml
 app/src/main/res/xml/data_extraction_rules.xml
 app/src/main/res/xml/file_paths.xml
 app/src/main/res/xml/locales_config.xml
+app/src/test/java/com/example/familysafetube/CelebrationEffectsTest.kt
 app/src/test/java/com/example/familysafetube/CelebrationTest.kt
+app/src/test/java/com/example/familysafetube/CelebrationVoiceTest.kt
 app/src/test/java/com/example/familysafetube/DriveLayoutTest.kt
 app/src/test/java/com/example/familysafetube/GateRulesTest.kt
 app/src/test/java/com/example/familysafetube/LockPolicyTest.kt
@@ -181,6 +186,7 @@ docs/changes/CHANGES-phase15.md
 docs/changes/CHANGES-phase16.md
 docs/changes/CHANGES-phase17.md
 docs/changes/CHANGES-phase18.md
+docs/changes/CHANGES-phase19.md
 docs/changes/CHANGES-phase2.md
 docs/changes/CHANGES-phase3.md
 docs/changes/CHANGES-phase4.md
