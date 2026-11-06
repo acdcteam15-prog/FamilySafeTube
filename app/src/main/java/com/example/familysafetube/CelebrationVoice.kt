@@ -64,6 +64,8 @@ data class CelebrationConfig(
     val useName: Boolean = false,
     val name: String = "",
     val style: VoiceStyle = VoiceStyle.NORMAL,
+    /** Say Arabic with its vowel marks (tashkeel), so the phone voice pronounces the words correctly. */
+    val diacritics: Boolean = true,
     val effect: CelebrationEffect = CelebrationEffect.CHEER,
     /** A recording file the parent picked for right answers; "" = a random one of the recordings. */
     val answerClip: String = "",
@@ -80,7 +82,7 @@ data class CelebrationConfig(
 
 /** Cleaning and storing the settings (pure, unit-tested). */
 object CelebrationSettings {
-    const val NAME_MAX = 24
+    const val NAME_MAX = 40          // Arabic vowel marks count as characters, so a name with marks needs more room
 
     /** "BRAVO,WELL_DONE" -> set; unknown words are ignored; nothing valid means all phrases. */
     fun parsePhrases(csv: String?): Set<PhraseId> {
@@ -102,6 +104,13 @@ object CelebrationSettings {
             .trim().replace(Regex("\\s+"), " ").take(NAME_MAX).trim()
 }
 
+/** Arabic vowel marks (tashkeel). Without them a text-to-speech voice has to guess the vowels and often gets a word wrong. */
+object ArabicMarks {
+    fun isMark(c: Char): Boolean = c in '\u064B'..'\u0652' || c == '\u0670'
+    fun strip(text: String): String = text.filterNot { isMark(it) }
+    fun hasMarks(text: String): Boolean = text.any { isMark(it) }
+}
+
 /** What the phone voice says. A name is added only when asked for and not blank. */
 object CelebrationPhrases {
     private val EN = mapOf(
@@ -113,13 +122,28 @@ object CelebrationPhrases {
         PhraseId.EXCELLENT to "ممتاز", PhraseId.AMAZING to "رائع", PhraseId.YOU_DID_IT to "لقد نجحت"
     )
 
-    /** "Well done!" / "Well done, Sara!" / "أحسنت!" / "أحسنت يا سارة!" */
-    fun text(lang: QuizLang, id: PhraseId, name: String? = null): String {
-        val base = (if (lang == QuizLang.AR) AR else EN).getValue(id)
-        val who = name?.trim().orEmpty()
+    /** The same Arabic phrases with every vowel mark, written the way a child hears them (no case endings). */
+    private val AR_VOWELED = mapOf(
+        PhraseId.WELL_DONE to "أَحْسَنْتَ", PhraseId.BRAVO to "بَرَافُو", PhraseId.GREAT_JOB to "عَمَل رَائِع",
+        PhraseId.EXCELLENT to "مُمْتَاز", PhraseId.AMAZING to "رَائِع", PhraseId.YOU_DID_IT to "لَقَدْ نَجَحْتَ"
+    )
+
+    /**
+     * "Well done!" / "Well done, Sara!" / "أَحْسَنْتَ!" / "أَحْسَنْتَ يَا سَارَة!".
+     * [diacritics] = false gives the plain Arabic (and takes the marks off the name too), for a phone voice that reads marks aloud.
+     */
+    fun text(lang: QuizLang, id: PhraseId, name: String? = null, diacritics: Boolean = true): String {
+        val arabic = lang == QuizLang.AR
+        val base = when {
+            !arabic -> EN.getValue(id)
+            diacritics -> AR_VOWELED.getValue(id)
+            else -> AR.getValue(id)
+        }
+        var who = name?.trim().orEmpty()
+        if (arabic && !diacritics) who = ArabicMarks.strip(who)
         return when {
             who.isEmpty() -> "$base!"
-            lang == QuizLang.AR -> "$base يا $who!"
+            arabic -> "$base ${if (diacritics) "يَا" else "يا"} $who!"
             else -> "$base, $who!"
         }
     }
@@ -130,7 +154,7 @@ object CelebrationPhrases {
         val choices = if (pool.size > 1) pool.filter { it != last } else pool
         val id = choices[random.nextInt(choices.size)]
         val name = if (config.useName) CelebrationSettings.cleanName(config.name) else ""
-        return id to text(lang, id, name)
+        return id to text(lang, id, name, config.diacritics)
     }
 }
 

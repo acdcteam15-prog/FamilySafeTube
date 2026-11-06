@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +46,12 @@ fun CelebrationSection(
     onChange: (CelebrationConfig) -> Unit,
     lang: QuizLang,
     praise: PraiseSet,
-    onTest: (CelebrationEvent) -> Unit
+    onTest: (CelebrationEvent) -> Unit,
+    /** Say one phrase now, exactly as the form shows it (to check the pronunciation). */
+    onHear: (PhraseId) -> Unit,
+    /** False when the phone has no text-to-speech voice for [lang]. */
+    ttsAvailable: Boolean,
+    onOpenVoiceSettings: () -> Unit
 ) {
     Heading(R.string.celeb_title)
     CheckLine(config.onAnswer, { onChange(config.copy(onAnswer = it)) }, stringResource(R.string.celeb_on_answer))
@@ -73,6 +79,15 @@ fun CelebrationSection(
         }
     }
 
+    if (config.voice != VoiceSource.OFF && !ttsAvailable) {
+        Text(
+            stringResource(R.string.celeb_no_voice),
+            color = MaterialTheme.colorScheme.error, fontSize = 12.sp,
+            modifier = Modifier.padding(top = 8.dp)
+        )
+        TextButton(onClick = onOpenVoiceSettings) { Text(stringResource(R.string.celeb_open_voice_settings)) }
+    }
+
     if (config.voice != VoiceSource.OFF) {
         CheckLine(config.useName, { onChange(config.copy(useName = it)) }, stringResource(R.string.celeb_use_name))
         if (config.useName) {
@@ -83,16 +98,39 @@ fun CelebrationSection(
                 label = { Text(stringResource(R.string.celeb_name_label)) },
                 modifier = Modifier.fillMaxWidth()
             )
+            if (lang == QuizLang.AR) {
+                Text(
+                    stringResource(R.string.celeb_name_hint),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+        if (lang == QuizLang.AR) {
+            CheckLine(config.diacritics, { onChange(config.copy(diacritics = it)) }, stringResource(R.string.celeb_diacritics))
+            Text(
+                stringResource(R.string.celeb_diacritics_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp
+            )
         }
 
         Heading(R.string.celeb_phrases)
         val shownName = if (config.useName) CelebrationSettings.cleanName(config.name) else ""
         for (id in PhraseId.values()) {
-            CheckLine(
-                checked = id in config.phrases,
-                onChange = { on -> onChange(config.copy(phrases = CelebrationSettings.withPhrase(config.phrases, id, on))) },
-                label = CelebrationPhrases.text(lang, id, shownName)            // exactly what the phone will say
-            )
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    Modifier.weight(1f).clickable { onChange(config.copy(phrases = CelebrationSettings.withPhrase(config.phrases, id, id !in config.phrases))) },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = id in config.phrases,
+                        onCheckedChange = { on -> onChange(config.copy(phrases = CelebrationSettings.withPhrase(config.phrases, id, on))) }
+                    )
+                    // exactly what the phone will say
+                    Text(CelebrationPhrases.text(lang, id, shownName, config.diacritics), modifier = Modifier.weight(1f))
+                }
+                TextButton(onClick = { onHear(id) }) { Text("▶ " + stringResource(R.string.celeb_hear), fontSize = 13.sp) }
+            }
         }
 
         Heading(R.string.celeb_style)

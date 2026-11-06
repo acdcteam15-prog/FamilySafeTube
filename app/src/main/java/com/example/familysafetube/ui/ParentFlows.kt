@@ -71,10 +71,26 @@ import com.example.familysafetube.UsageTracker
 import com.example.familysafetube.get
 import com.example.familysafetube.getOr
 import androidx.compose.runtime.DisposableEffect
+import com.example.familysafetube.AudioStep
+import com.example.familysafetube.CelebrationPhrases
 import com.example.familysafetube.CelebrationPlan
+import com.example.familysafetube.CelebrationSettings
 import com.example.familysafetube.CelebrationStore
 import com.example.familysafetube.QuizAudio
 import com.example.familysafetube.QuizRepository
+
+/** Opens the phone's text-to-speech settings (to install or fix a voice); falls back to the main Settings app. */
+private fun openVoiceSettings(ctx: android.content.Context) {
+    for (intent in listOf(
+        android.content.Intent("com.android.settings.TTS_SETTINGS"),
+        android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+    )) {
+        try {
+            ctx.startActivity(intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            return
+        } catch (_: Exception) { /* try the next one */ }
+    }
+}
 
 /** Quick picks under the daily limit field (minutes). */
 private val LIMIT_PRESETS = listOf(15, 30, 45, 60, 90, 120)
@@ -558,6 +574,15 @@ fun SettingsDialog(
                         onChange = { celebration = it },
                         lang = quizLang,
                         praise = remember { QuizRepository.praise() },
+                        onHear = { id ->
+                            val shown = if (celebration.useName) CelebrationSettings.cleanName(celebration.name) else ""
+                            val style = celebration.style.clamped()
+                            celebrationAudio.play(listOf(
+                                AudioStep.Tts(CelebrationPhrases.text(quizLang, id, shown, celebration.diacritics), quizLang, style.pitch, style.rate)
+                            ))
+                        },
+                        ttsAvailable = celebrationAudio.isTtsAvailable(quizLang),
+                        onOpenVoiceSettings = { openVoiceSettings(ctx) },
                         onTest = { event ->
                             // plays what the form shows right now, even before it is saved
                             celebrationAudio.play(

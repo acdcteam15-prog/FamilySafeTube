@@ -382,4 +382,10 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="celeb_recordings_hint">No recordings yet, so the phone voice is used. Record your own under Edit quiz cards &gt; Praise voices.</string>
     <string name="celeb_test_answer">▶ Test: right answer</string>
     <string name="celeb_test_round">▶ Test: end of round</string>
+    <string name="celeb_diacritics">Say Arabic with tashkeel (vowel marks)</string>
+    <string name="celeb_diacritics_hint">Helps the phone voice pronounce Arabic words correctly. Turn it off only if your phone voice reads the marks out loud.</string>
+    <string name="celeb_name_hint">For an Arabic name, type the vowel marks too (for example سَارَة) so the voice says it correctly.</string>
+    <string name="celeb_hear">Hear</string>
+    <string name="celeb_no_voice">This phone has no voice installed for this language, so the phone voice will stay silent. Install one in the phone\'s text-to-speech settings.</string>
+    <string name="celeb_open_voice_settings">Open voice settings</string>
 </resources>

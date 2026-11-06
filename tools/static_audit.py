@@ -574,6 +574,20 @@ if "LockChoiceDialog(" not in approot or "Policy.lockNow(minutes)" not in main_a
     problems.append("'Lock now' must offer a duration and the home timer must look again when a timed lock ends")
 check("phone lock, easy maths, timed lock", problems)
 
+# 19. Arabic celebration phrases carry their vowel marks, switchable, each phrase can be heard, a missing voice is explained
+problems = []
+cv = src("CelebrationVoice.kt")
+if "AR_VOWELED" not in cv or "config.diacritics" not in cv:
+    problems.append("CelebrationPhrases must speak Arabic with vowel marks (AR_VOWELED) according to config.diacritics")
+if "diacritics = st.getOr(Keys.CELEB_DIACRITICS" not in src("CelebrationStore.kt"):
+    problems.append("CelebrationStore must load the tashkeel setting")
+sec = src("ui/CelebrationSection.kt")
+for need in ("config.copy(diacritics", "onHear(id)", "onOpenVoiceSettings", "ttsAvailable"):
+    if need not in sec: problems.append(f"Settings > Celebration lacks '{need}'")
+for need in ("onHear = {", "celebration.diacritics", "isTtsAvailable(quizLang)"):
+    if need not in src("ui/ParentFlows.kt"): problems.append(f"ParentFlows.kt (Settings) lacks '{need}'")
+check("celebration: Arabic with tashkeel, hear each phrase, voice check", problems)
+
 print()
 if failures:
     print(f"{len(failures)} problem(s) found.")

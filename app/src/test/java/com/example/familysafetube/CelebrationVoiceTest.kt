@@ -19,10 +19,55 @@ class CelebrationVoiceTest {
     @Test fun phrases_englishAndArabic_withAndWithoutAName() {
         assertEquals("Well done!", CelebrationPhrases.text(QuizLang.EN, PhraseId.WELL_DONE))
         assertEquals("Well done, Sara!", CelebrationPhrases.text(QuizLang.EN, PhraseId.WELL_DONE, "Sara"))
-        assertEquals("أحسنت!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE))
-        assertEquals("أحسنت يا سارة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, "سارة"))
+        assertEquals("أحسنت!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, diacritics = false))
+        assertEquals("أحسنت يا سارة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, "سارة", diacritics = false))
         assertEquals("Bravo!", CelebrationPhrases.text(QuizLang.EN, PhraseId.BRAVO, "   "))      // a blank name is no name
         assertEquals("Bravo!", CelebrationPhrases.text(QuizLang.EN, PhraseId.BRAVO, null))
+    }
+
+    // ── Arabic vowel marks (tashkeel) ──
+    @Test fun arabic_isSpokenWithVowelMarksByDefault() {
+        assertEquals("أَحْسَنْتَ!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE))
+        assertEquals("أَحْسَنْتَ يَا سَارَة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, "سَارَة"))
+        for (id in PhraseId.values()) assertTrue("$id", ArabicMarks.hasMarks(CelebrationPhrases.text(QuizLang.AR, id)))
+    }
+
+    @Test fun arabic_markedAndPlainAreTheSameWords() {
+        for (id in PhraseId.values()) for (name in listOf(null, "سارة", "سَارَة")) {
+            val plain = CelebrationPhrases.text(QuizLang.AR, id, name, diacritics = false)
+            val marked = CelebrationPhrases.text(QuizLang.AR, id, name, diacritics = true)
+            assertFalse("$id plain has marks", ArabicMarks.hasMarks(plain))
+            assertEquals("$id", plain, ArabicMarks.strip(marked))
+        }
+    }
+
+    @Test fun arabic_switchingMarksOffTakesThemOffTheNameToo() {
+        assertEquals("أحسنت يا سارة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, "سَارَة", diacritics = false))
+    }
+
+    @Test fun english_isNotAffectedByTheMarksSwitch() {
+        for (id in PhraseId.values()) assertEquals(CelebrationPhrases.text(QuizLang.EN, id, "Sara", true), CelebrationPhrases.text(QuizLang.EN, id, "Sara", false))
+    }
+
+    @Test fun arabicMarks_helpers() {
+        assertTrue(ArabicMarks.isMark('\u064E')); assertTrue(ArabicMarks.isMark('\u0652')); assertTrue(ArabicMarks.isMark('\u0670'))
+        assertFalse(ArabicMarks.isMark('أ')); assertFalse(ArabicMarks.isMark('a'))
+        assertEquals("سارة", ArabicMarks.strip("سَارَة"))
+    }
+
+    @Test fun thePlan_usesTheMarksSetting() {
+        val on = CelebrationConfig(voice = VoiceSource.PHONE, effect = CelebrationEffect.NONE, useName = true, name = "سَارَة")
+        repeat(30) { seed ->
+            val t = (plan(on, lang = QuizLang.AR, seed = seed).steps.single() as AudioStep.Tts).text
+            assertTrue(t, ArabicMarks.hasMarks(t))
+            val off = (plan(on.copy(diacritics = false), lang = QuizLang.AR, seed = seed).steps.single() as AudioStep.Tts).text
+            assertFalse(off, ArabicMarks.hasMarks(off))
+        }
+        assertTrue(CelebrationConfig().diacritics)
+    }
+
+    @Test fun cleanName_keepsTheMarks() {
+        assertEquals("سَارَة", CelebrationSettings.cleanName("  سَارَة "))
     }
 
     @Test fun everyPhraseExistsInBothLanguages_andIsClean() {
