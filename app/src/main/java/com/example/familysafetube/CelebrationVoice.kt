@@ -33,6 +33,13 @@ enum class CelebrationEffect(val key: String) {
 /** The phrases the phone voice can say (the words live in [CelebrationPhrases], in Arabic and English). */
 enum class PhraseId { WELL_DONE, BRAVO, GREAT_JOB, EXCELLENT, AMAZING, YOU_DID_IT }
 
+/** Who is being praised: Arabic says "well done" differently to a boy (أَحْسَنْتَ) and a girl (أَحْسَنْتِ). */
+enum class ChildGender(val key: String) {
+    BOY("boy"), GIRL("girl");
+
+    companion object { fun fromKey(key: String?): ChildGender = values().firstOrNull { it.key == key } ?: BOY }
+}
+
 /** How the phone voice sounds: [pitch] and speaking [rate] (1.0 = the phone's normal voice). */
 data class VoiceStyle(val pitch: Float, val rate: Float) {
     fun clamped() = VoiceStyle(pitch.coerceIn(PITCH_MIN, PITCH_MAX), rate.coerceIn(RATE_MIN, RATE_MAX))
@@ -66,6 +73,8 @@ data class CelebrationConfig(
     val style: VoiceStyle = VoiceStyle.NORMAL,
     /** Say Arabic with its vowel marks (tashkeel), so the phone voice pronounces the words correctly. */
     val diacritics: Boolean = true,
+    /** Boy or girl: chooses the Arabic word forms (English is the same for both). */
+    val gender: ChildGender = ChildGender.BOY,
     val effect: CelebrationEffect = CelebrationEffect.CHEER,
     /** A recording file the parent picked for right answers; "" = a random one of the recordings. */
     val answerClip: String = "",
@@ -128,16 +137,25 @@ object CelebrationPhrases {
         PhraseId.EXCELLENT to "مُمْتَاز", PhraseId.AMAZING to "رَائِع", PhraseId.YOU_DID_IT to "لَقَدْ نَجَحْتَ"
     )
 
+    /** The same phrases said to a girl (only the ones that change: أَحْسَنْتِ، مُمْتَازَة، رَائِعَة، نَجَحْتِ). */
+    private val AR_VOWELED_GIRL = AR_VOWELED + mapOf(
+        PhraseId.WELL_DONE to "أَحْسَنْتِ", PhraseId.EXCELLENT to "مُمْتَازَة",
+        PhraseId.AMAZING to "رَائِعَة", PhraseId.YOU_DID_IT to "لَقَدْ نَجَحْتِ"
+    )
+
+    /** Plain letters for a girl: only the words whose spelling changes (the ـِ of أحسنتِ is a mark, so it vanishes). */
+    private val AR_GIRL = AR + mapOf(PhraseId.EXCELLENT to "ممتازة", PhraseId.AMAZING to "رائعة")
+
     /**
      * "Well done!" / "Well done, Sara!" / "أَحْسَنْتَ!" / "أَحْسَنْتَ يَا سَارَة!".
      * [diacritics] = false gives the plain Arabic (and takes the marks off the name too), for a phone voice that reads marks aloud.
      */
-    fun text(lang: QuizLang, id: PhraseId, name: String? = null, diacritics: Boolean = true): String {
+    fun text(lang: QuizLang, id: PhraseId, name: String? = null, diacritics: Boolean = true, gender: ChildGender = ChildGender.BOY): String {
         val arabic = lang == QuizLang.AR
         val base = when {
             !arabic -> EN.getValue(id)
-            diacritics -> AR_VOWELED.getValue(id)
-            else -> AR.getValue(id)
+            diacritics -> (if (gender == ChildGender.GIRL) AR_VOWELED_GIRL else AR_VOWELED).getValue(id)
+            else -> (if (gender == ChildGender.GIRL) AR_GIRL else AR).getValue(id)
         }
         var who = name?.trim().orEmpty()
         if (arabic && !diacritics) who = ArabicMarks.strip(who)
@@ -154,7 +172,7 @@ object CelebrationPhrases {
         val choices = if (pool.size > 1) pool.filter { it != last } else pool
         val id = choices[random.nextInt(choices.size)]
         val name = if (config.useName) CelebrationSettings.cleanName(config.name) else ""
-        return id to text(lang, id, name, config.diacritics)
+        return id to text(lang, id, name, config.diacritics, config.gender)
     }
 }
 

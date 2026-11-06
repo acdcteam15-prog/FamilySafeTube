@@ -578,7 +578,7 @@ fun SettingsDialog(
                             val shown = if (celebration.useName) CelebrationSettings.cleanName(celebration.name) else ""
                             val style = celebration.style.clamped()
                             celebrationAudio.play(listOf(
-                                AudioStep.Tts(CelebrationPhrases.text(quizLang, id, shown, celebration.diacritics), quizLang, style.pitch, style.rate)
+                                AudioStep.Tts(CelebrationPhrases.text(quizLang, id, shown, celebration.diacritics, celebration.gender), quizLang, style.pitch, style.rate)
                             ))
                         },
                         ttsAvailable = celebrationAudio.isTtsAvailable(quizLang),

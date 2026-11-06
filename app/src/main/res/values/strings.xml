@@ -386,6 +386,9 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="celeb_diacritics_hint">Helps the phone voice pronounce Arabic words correctly. Turn it off only if your phone voice reads the marks out loud.</string>
     <string name="celeb_name_hint">For an Arabic name, type the vowel marks too (for example سَارَة) so the voice says it correctly.</string>
     <string name="celeb_hear">Hear</string>
+    <string name="celeb_gender">The child is (Arabic wording)</string>
+    <string name="celeb_gender_boy">Boy</string>
+    <string name="celeb_gender_girl">Girl</string>
     <string name="celeb_no_voice">This phone has no voice installed for this language, so the phone voice will stay silent. Install one in the phone\'s text-to-speech settings.</string>
     <string name="celeb_open_voice_settings">Open voice settings</string>
 </resources>

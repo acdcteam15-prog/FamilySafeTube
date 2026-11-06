@@ -386,6 +386,9 @@
     <string name="celeb_diacritics_hint">يساعد صوت الهاتف على نطق الكلمات العربية نطقًا صحيحًا. أوقفه فقط إذا كان صوت هاتفك يقرأ علامات التشكيل بصوت مسموع.</string>
     <string name="celeb_name_hint">للأسماء العربية اكتب الحركات أيضًا (مثل سَارَة) ليُنطق الاسم نطقًا صحيحًا.</string>
     <string name="celeb_hear">استمع</string>
+    <string name="celeb_gender">الطفل (صيغة الكلام العربي)</string>
+    <string name="celeb_gender_boy">ولد</string>
+    <string name="celeb_gender_girl">بنت</string>
     <string name="celeb_no_voice">لا يوجد صوت لهذه اللغة على الهاتف، لذلك سيبقى صوت الهاتف صامتًا. ثبّت واحدًا من إعدادات تحويل النص إلى كلام في الهاتف.</string>
     <string name="celeb_open_voice_settings">فتح إعدادات الصوت</string>
 </resources>

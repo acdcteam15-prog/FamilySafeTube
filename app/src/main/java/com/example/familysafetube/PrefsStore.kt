@@ -64,6 +64,7 @@ object Keys {
     val CELEB_PITCH       = floatPreferencesKey("celeb_pitch")             // phone voice pitch, 1.0 = normal
     val CELEB_RATE        = floatPreferencesKey("celeb_rate")              // phone voice speed, 1.0 = normal
     val CELEB_DIACRITICS  = booleanPreferencesKey("celeb_diacritics")      // say Arabic with vowel marks (tashkeel)
+    val CELEB_GENDER      = stringPreferencesKey("celeb_gender")           // boy | girl (Arabic word forms)
     val CELEB_EFFECT      = stringPreferencesKey("celeb_effect")           // cheer | fanfare | applause | sparkle | none
     val CELEB_CLIP_ANSWER = stringPreferencesKey("celeb_clip_answer")      // chosen recording for a right answer, "" = random
     val CELEB_CLIP_ROUND  = stringPreferencesKey("celeb_clip_round")       // chosen recording for the end of a round, "" = random

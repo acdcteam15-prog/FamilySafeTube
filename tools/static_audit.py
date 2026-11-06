@@ -582,7 +582,7 @@ if "AR_VOWELED" not in cv or "config.diacritics" not in cv:
 if "diacritics = st.getOr(Keys.CELEB_DIACRITICS" not in src("CelebrationStore.kt"):
     problems.append("CelebrationStore must load the tashkeel setting")
 sec = src("ui/CelebrationSection.kt")
-for need in ("config.copy(diacritics", "onHear(id)", "onOpenVoiceSettings", "ttsAvailable"):
+for need in ("config.copy(diacritics", "config.copy(gender", "onHear(id)", "onOpenVoiceSettings", "ttsAvailable"):
     if need not in sec: problems.append(f"Settings > Celebration lacks '{need}'")
 for need in ("onHear = {", "celebration.diacritics", "isTtsAvailable(quizLang)"):
     if need not in src("ui/ParentFlows.kt"): problems.append(f"ParentFlows.kt (Settings) lacks '{need}'")

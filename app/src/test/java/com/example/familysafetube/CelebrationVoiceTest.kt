@@ -66,6 +66,28 @@ class CelebrationVoiceTest {
         assertTrue(CelebrationConfig().diacritics)
     }
 
+    @Test fun girl_getsTheFeminineForms() {
+        assertEquals("أَحْسَنْتِ!", CelebrationPhrases.text(QuizLang.AR, PhraseId.WELL_DONE, null, true, ChildGender.GIRL))
+        assertEquals("مُمْتَازَة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.EXCELLENT, null, true, ChildGender.GIRL))
+        assertEquals("رَائِعَة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.AMAZING, null, true, ChildGender.GIRL))
+        assertEquals("لَقَدْ نَجَحْتِ!", CelebrationPhrases.text(QuizLang.AR, PhraseId.YOU_DID_IT, null, true, ChildGender.GIRL))
+        assertEquals("ممتازة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.EXCELLENT, null, false, ChildGender.GIRL))
+        assertEquals("رائعة!", CelebrationPhrases.text(QuizLang.AR, PhraseId.AMAZING, null, false, ChildGender.GIRL))
+    }
+
+    @Test fun boy_isTheDefault_andGirlMarkedAndPlainAreTheSameWords() {
+        assertEquals(ChildGender.BOY, CelebrationConfig().gender)
+        assertEquals(ChildGender.BOY, ChildGender.fromKey(null)); assertEquals(ChildGender.GIRL, ChildGender.fromKey("girl"))
+        for (id in PhraseId.values()) for (g in ChildGender.values()) {
+            val plain = CelebrationPhrases.text(QuizLang.AR, id, "سارة", false, g)
+            assertEquals("$id $g", plain, ArabicMarks.strip(CelebrationPhrases.text(QuizLang.AR, id, "سارة", true, g)))
+        }
+    }
+
+    @Test fun english_isTheSameForBoyAndGirl() {
+        for (id in PhraseId.values()) assertEquals(CelebrationPhrases.text(QuizLang.EN, id, "Sam", true, ChildGender.BOY), CelebrationPhrases.text(QuizLang.EN, id, "Sam", true, ChildGender.GIRL))
+    }
+
     @Test fun cleanName_keepsTheMarks() {
         assertEquals("سَارَة", CelebrationSettings.cleanName("  سَارَة "))
     }

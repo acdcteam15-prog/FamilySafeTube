@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.familysafetube.CelebrationConfig
+import com.example.familysafetube.ChildGender
 import com.example.familysafetube.CelebrationEffect
 import com.example.familysafetube.CelebrationEvent
 import com.example.familysafetube.CelebrationPhrases
@@ -107,6 +108,16 @@ fun CelebrationSection(
             }
         }
         if (lang == QuizLang.AR) {
+            Heading(R.string.celeb_gender)
+            ChipRow {
+                for (g in ChildGender.values()) {
+                    FilterChip(
+                        selected = config.gender == g,
+                        onClick = { onChange(config.copy(gender = g)) },
+                        label = { Text(stringResource(if (g == ChildGender.BOY) R.string.celeb_gender_boy else R.string.celeb_gender_girl)) }
+                    )
+                }
+            }
             CheckLine(config.diacritics, { onChange(config.copy(diacritics = it)) }, stringResource(R.string.celeb_diacritics))
             Text(
                 stringResource(R.string.celeb_diacritics_hint),
@@ -127,7 +138,7 @@ fun CelebrationSection(
                         onCheckedChange = { on -> onChange(config.copy(phrases = CelebrationSettings.withPhrase(config.phrases, id, on))) }
                     )
                     // exactly what the phone will say
-                    Text(CelebrationPhrases.text(lang, id, shownName, config.diacritics), modifier = Modifier.weight(1f))
+                    Text(CelebrationPhrases.text(lang, id, shownName, config.diacritics, config.gender), modifier = Modifier.weight(1f))
                 }
                 TextButton(onClick = { onHear(id) }) { Text("▶ " + stringResource(R.string.celeb_hear), fontSize = 13.sp) }
             }

@@ -15,6 +15,7 @@ object CelebrationStore {
             name = CelebrationSettings.cleanName(st[Keys.CELEB_NAME]),
             style = VoiceStyle(st.getOr(Keys.CELEB_PITCH, 1f), st.getOr(Keys.CELEB_RATE, 1f)).clamped(),
             diacritics = st.getOr(Keys.CELEB_DIACRITICS, true),
+            gender = ChildGender.fromKey(st[Keys.CELEB_GENDER]),
             effect = CelebrationEffect.fromKey(st[Keys.CELEB_EFFECT]),
             answerClip = st[Keys.CELEB_CLIP_ANSWER].orEmpty(),
             roundClip = st[Keys.CELEB_CLIP_ROUND].orEmpty()
@@ -33,6 +34,7 @@ object CelebrationStore {
         p[Keys.CELEB_PITCH] = style.pitch
         p[Keys.CELEB_RATE] = style.rate
         p[Keys.CELEB_DIACRITICS] = c.diacritics
+        p[Keys.CELEB_GENDER] = c.gender.key
         p[Keys.CELEB_EFFECT] = c.effect.key
         p[Keys.CELEB_CLIP_ANSWER] = c.answerClip
         p[Keys.CELEB_CLIP_ROUND] = c.roundClip

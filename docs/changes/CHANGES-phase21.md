@@ -18,6 +18,10 @@ The phrases were stored and spoken as plain letters (أحسنت). A text-to-spee
 - **No voice installed?** If the phone has no text-to-speech voice for the language, Settings says so (it used to stay silently quiet) and has
   an *Open voice settings* button that goes to the phone's text-to-speech settings.
 
+## Boy or girl (added after the first test)
+Arabic praise changes with the child. **Settings > Celebration > The child is: Boy / Girl** (shown for Arabic; Boy is the default). For a girl:
+أَحْسَنْتِ، مُمْتَازَة، رَائِعَة، لَقَدْ نَجَحْتِ (بَرَافُو and عَمَل رَائِع stay the same). The Hear buttons and the phrase list follow the choice. English is the same for both.
+
 ## Under the hood
 `ArabicMarks` (strip / hasMarks), `CelebrationPhrases.text(..., diacritics)`, `CelebrationConfig.diacritics`, key `celeb_diacritics`
 (read and written by `CelebrationStore`), audit rule 19.
