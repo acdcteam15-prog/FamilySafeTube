@@ -37,6 +37,7 @@ app/src/main/java/com/example/familysafetube/MiniJson.kt
 app/src/main/java/com/example/familysafetube/NavigationPolicy.kt
 app/src/main/java/com/example/familysafetube/OfflinePlayerActivity.kt
 app/src/main/java/com/example/familysafetube/ParentalGate.kt
+app/src/main/java/com/example/familysafetube/PhoneLock.kt
 app/src/main/java/com/example/familysafetube/Phonics.kt
 app/src/main/java/com/example/familysafetube/PhotoMath.kt
 app/src/main/java/com/example/familysafetube/PinHasher.kt
@@ -188,6 +189,7 @@ docs/changes/CHANGES-phase17.md
 docs/changes/CHANGES-phase18.md
 docs/changes/CHANGES-phase19.md
 docs/changes/CHANGES-phase2.md
+docs/changes/CHANGES-phase20.md
 docs/changes/CHANGES-phase3.md
 docs/changes/CHANGES-phase4.md
 docs/changes/CHANGES-phase5.md

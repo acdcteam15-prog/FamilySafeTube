@@ -17,6 +17,21 @@ object LockPolicy {
     /** Extra minutes the parent can add with the PIN. */
     val GRANT_CHOICES = listOf(5, 10, 15, 30)
 
+    /** "Lock now" choices in minutes; 0 = stay locked until a parent opens it. */
+    val LOCK_CHOICES = listOf(0, 15, 30, 60)
+
+    /** A manual lock is on when it was set "until a parent opens it", or a timed lock has not run out yet. */
+    fun manualActive(manualFlag: Boolean, timedUntilMs: Long, nowMs: Long): Boolean = manualFlag || nowMs < timedUntilMs
+
+    /** When a timed lock started now ends (epoch ms); 0 = it has no end ("until a parent opens it"). */
+    fun timedLockEnd(minutes: Int, nowMs: Long): Long = if (minutes <= 0) 0L else nowMs + minutes * 60_000L
+
+    /** Look again when a running timed lock ends (a hair after it), but never later than [normalDelayMs]. */
+    fun delayWithTimedLock(normalDelayMs: Long, timedUntilMs: Long, nowMs: Long): Long {
+        if (timedUntilMs <= nowMs) return normalDelayMs
+        return minOf(normalDelayMs, (timedUntilMs - nowMs) + MARGIN_MS).coerceAtLeast(MIN_CHECK_MS)
+    }
+
     /** Manual lock beats bedtime, which beats "time is up". */
     fun kind(manual: Boolean, bedtime: Boolean, globalReached: Boolean): LockKind = when {
         manual -> LockKind.MANUAL

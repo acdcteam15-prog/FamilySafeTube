@@ -24,6 +24,8 @@ private sealed interface Flow {
     data class Updates(val fromSettings: Boolean) : Flow
     /** After the PIN on a time-up / bedtime lock: add minutes, open Settings, or stay locked. */
     data object GrantTime : Flow
+    /** The home screen's "Lock now": how long to lock for. */
+    data object LockChoice : Flow
 }
 
 private enum class GateNext { SETTINGS, RESET_TIMER, UPDATES, UNLOCK }
@@ -41,8 +43,8 @@ interface HomeActions : DriveUi {
     fun resetTimer()
     fun clearStorage()
     fun settingsSaved()
-    /** Cover the whole app with the lock screen until the parent enters the PIN. */
-    fun lockNow()
+    /** Cover the whole app with the lock screen: [minutes] > 0 for that long, 0 until the parent opens it. */
+    fun lockNow(minutes: Int)
     /** Open the lock after the PIN: a manual lock simply opens; otherwise [minutes] of extra time are added. */
     fun unlock(minutes: Int)
 }
@@ -74,7 +76,7 @@ fun AppRoot(
     }
 
     if (state.lock != LockKind.NONE) {
-        // Nothing of the app is shown while locked, only a padlock. The parent PIN opens it.
+        // Nothing of the app is shown while locked, only a padlock. The parent check (phone lock, PIN or maths) opens it.
         LockOverlay(onTap = { flow = Flow.Gate(GateNext.UNLOCK) })
     } else {
         HomeScreen(
@@ -88,7 +90,7 @@ fun AppRoot(
             onUpdates = { flow = Flow.Gate(GateNext.UPDATES) },
             onSettings = { flow = Flow.Gate(GateNext.SETTINGS) },
             onResetTimer = { flow = Flow.Gate(GateNext.RESET_TIMER) },
-            onLockNow = actions::lockNow
+            onLockNow = { flow = Flow.LockChoice }
         )
     }
 
@@ -140,6 +142,11 @@ fun AppRoot(
         Flow.GrantTime -> GrantTimeDialog(
             onGrant = { minutes -> actions.unlock(minutes); flow = Flow.None },
             onOpenSettings = { flow = Flow.Settings },
+            onDismiss = close
+        )
+
+        Flow.LockChoice -> LockChoiceDialog(
+            onPick = { minutes -> flow = Flow.None; actions.lockNow(minutes) },
             onDismiss = close
         )
 

@@ -106,6 +106,40 @@ class LockPolicyTest {
         assertEquals(LockPolicy.GRANT_CHOICES.sorted(), LockPolicy.GRANT_CHOICES)
     }
 
+    // ── "lock for N minutes" ──
+    @Test fun lockChoices_startWithUntilAParentOpensIt_andAreSorted() {
+        assertEquals(0, LockPolicy.LOCK_CHOICES.first())
+        assertEquals(LockPolicy.LOCK_CHOICES.sorted(), LockPolicy.LOCK_CHOICES)
+        assertTrue(LockPolicy.LOCK_CHOICES.drop(1).all { it > 0 })
+    }
+
+    @Test fun timedLock_endsAtNowPlusMinutes_zeroHasNoEnd() {
+        assertEquals(1_000L + 15 * minute, LockPolicy.timedLockEnd(15, 1_000L))
+        assertEquals(0L, LockPolicy.timedLockEnd(0, 1_000L))
+        assertEquals(0L, LockPolicy.timedLockEnd(-3, 1_000L))
+    }
+
+    @Test fun manualLock_isOnWhileATimedLockRuns_andOffAfterItEnds() {
+        val now = 5_000_000L
+        assertFalse(LockPolicy.manualActive(false, 0L, now))
+        assertTrue(LockPolicy.manualActive(true, 0L, now))                 // until a parent opens it
+        assertTrue(LockPolicy.manualActive(false, now + minute, now))      // timed, still running
+        assertFalse(LockPolicy.manualActive(false, now, now))              // exactly at the end: open again
+        assertFalse(LockPolicy.manualActive(false, now - 1, now))          // over
+        assertTrue(LockPolicy.manualActive(true, now - 1, now))            // the manual flag wins
+    }
+
+    @Test fun delayWithTimedLock_looksAgainWhenTheTimedLockEnds() {
+        val now = 5_000_000L
+        assertEquals(30_000L, LockPolicy.delayWithTimedLock(30_000L, 0L, now))                    // no timed lock
+        assertEquals(30_000L, LockPolicy.delayWithTimedLock(30_000L, now - 1, now))               // already over
+        assertEquals(30_000L, LockPolicy.delayWithTimedLock(30_000L, now + 10 * minute, now))     // far away: normal rhythm
+        val soon = LockPolicy.delayWithTimedLock(30_000L, now + 5_000L, now)
+        assertTrue("fires after the end, not before: $soon", soon >= 5_000L)
+        assertTrue("and soon after it: $soon", soon < 6_000L)
+        assertTrue(LockPolicy.delayWithTimedLock(30_000L, now + 1L, now) >= LockPolicy.MIN_CHECK_MS)
+    }
+
     // ── daily quiz rounds ──
     @Test fun roundLimit_zeroMeansNoLimit() {
         assertFalse(RoundLimit.reached(0, 0)); assertFalse(RoundLimit.reached(0, 999))

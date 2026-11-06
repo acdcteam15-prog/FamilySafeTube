@@ -49,8 +49,11 @@ import com.example.familysafetube.AppGraph
 import com.example.familysafetube.FormError
 import com.example.familysafetube.FormResult
 import com.example.familysafetube.GateGuard
+import com.example.familysafetube.GateMethod
 import com.example.familysafetube.GateRules
+import com.example.familysafetube.GateStart
 import com.example.familysafetube.Keys
+import com.example.familysafetube.PhoneLock
 import com.example.familysafetube.PinStore
 import com.example.familysafetube.DeckId
 import com.example.familysafetube.QuizDecks
@@ -73,6 +76,9 @@ import com.example.familysafetube.CelebrationStore
 import com.example.familysafetube.QuizAudio
 import com.example.familysafetube.QuizRepository
 
+/** Quick picks under the daily limit field (minutes). */
+private val LIMIT_PRESETS = listOf(15, 30, 45, 60, 90, 120)
+
 private fun waitText(ctx: android.content.Context, seconds: Long): String =
     if (seconds < 60) ctx.getString(R.string.wait_seconds, seconds.toInt())
     else ctx.getString(R.string.wait_minutes, ((seconds + 59) / 60).toInt())
@@ -80,29 +86,43 @@ private fun waitText(ctx: android.content.Context, seconds: Long): String =
 // ═════════════════════════════════════════════════════════════════════════════
 // Parental gate
 // ═════════════════════════════════════════════════════════════════════════════
-private enum class GateStage { CHOICE, PIN, MATH }
+private enum class GateStage { PHONE, CHOICE, PIN, MATH }
 
 /**
- * PIN or maths verification. The maths fallback stays available even when a PIN is set
- * (it is the PIN-recovery path). A wrong answer is counted by [GateGuard]; after three, the gate
- * locks with an escalating, persistent delay.
+ * Parent verification. First choice is the phone's own lock (face, fingerprint or the phone PIN) when the phone has one
+ * and the parent has not switched it off; otherwise (or after "Other ways") the app PIN or a very easy maths question.
+ * The maths fallback stays available even when a PIN is set (it is the PIN-recovery path). A wrong PIN / maths answer
+ * is counted by [GateGuard]; after three, the PIN and maths lock with an escalating, persistent delay (the phone lock
+ * stays usable: it has its own protection).
  */
 @Composable
 fun ParentGate(onSuccess: () -> Unit, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
 
-    // Locked out? Tell the parent and close straight away.
+    val phoneOn = remember { PhoneLock.isOn(ctx) }
+    val hasPin = remember { PinStore.hasPin(ctx) }
     val lockMs = remember { GateGuard.remainingLockMs(ctx) }
+    val gateOpen = GateRules.gateOpenForAttempts(lockMs, phoneOn)
+
+    // Locked out (and no phone lock to fall back on)? Tell the parent and close straight away.
     LaunchedEffect(Unit) {
-        if (lockMs > 0) {
+        if (!gateOpen) {
             Toast.makeText(ctx, ctx.getString(R.string.gate_still_locked, waitText(ctx, lockMs / 1000)), Toast.LENGTH_LONG).show()
             UsageTracker.recordLockAttempt(ctx)
             onDismiss()
         }
     }
-    if (lockMs > 0) return
+    if (!gateOpen) return
 
-    var stage by remember { mutableStateOf(if (PinStore.hasPin(ctx)) GateStage.CHOICE else GateStage.MATH) }
+    var stage by remember {
+        mutableStateOf(
+            when (GateRules.start(phoneOn, hasPin)) {
+                GateStart.PHONE -> GateStage.PHONE
+                GateStart.CHOICE -> GateStage.CHOICE
+                GateStart.MATH -> GateStage.MATH
+            }
+        )
+    }
 
     fun failed() {
         UsageTracker.recordLockAttempt(ctx)
@@ -118,14 +138,49 @@ fun ParentGate(onSuccess: () -> Unit, onDismiss: () -> Unit) {
     }
 
     when (stage) {
+        GateStage.PHONE -> {
+            // The phone shows its own prompt; this screen draws nothing while it is up.
+            LaunchedEffect(Unit) {
+                val activity = PhoneLock.activityOf(ctx)
+                if (activity == null) {
+                    if (lockMs > 0) {
+                        Toast.makeText(ctx, ctx.getString(R.string.gate_still_locked, waitText(ctx, lockMs / 1000)), Toast.LENGTH_LONG).show()
+                        onDismiss()
+                    } else {
+                        stage = GateStage.CHOICE
+                    }
+                    return@LaunchedEffect
+                }
+                PhoneLock.prompt(activity) { ok, error ->
+                    when {
+                        ok -> passed()
+                        // PIN / maths are locked out for now: only the phone lock was possible, so close.
+                        lockMs > 0 -> {
+                            Toast.makeText(ctx, error ?: ctx.getString(R.string.gate_still_locked, waitText(ctx, lockMs / 1000)), Toast.LENGTH_LONG).show()
+                            onDismiss()
+                        }
+                        else -> {
+                            if (error != null) Toast.makeText(ctx, error, Toast.LENGTH_LONG).show()
+                            stage = GateStage.CHOICE
+                        }
+                    }
+                }
+            }
+        }
+
         GateStage.CHOICE -> AlertDialog(
             onDismissRequest = onDismiss,
             icon = { AppLogo(Modifier.size(56.dp)) },
             title = { Text(stringResource(R.string.gate_title)) },
             text = {
                 Column {
-                    TextButton(onClick = { stage = GateStage.PIN }) { Text(stringResource(R.string.gate_choose_pin)) }
-                    TextButton(onClick = { stage = GateStage.MATH }) { Text(stringResource(R.string.gate_choose_math)) }
+                    for (method in GateRules.methods(phoneOn, hasPin)) {
+                        when (method) {
+                            GateMethod.PHONE -> TextButton(onClick = { stage = GateStage.PHONE }) { Text(stringResource(R.string.gate_choose_phone)) }
+                            GateMethod.PIN -> TextButton(onClick = { stage = GateStage.PIN }) { Text(stringResource(R.string.gate_choose_pin)) }
+                            GateMethod.MATH -> TextButton(onClick = { stage = GateStage.MATH }) { Text(stringResource(R.string.gate_choose_math)) }
+                        }
+                    }
                 }
             },
             confirmButton = {},
@@ -159,22 +214,30 @@ fun ParentGate(onSuccess: () -> Unit, onDismiss: () -> Unit) {
         }
 
         GateStage.MATH -> {
-            val challenge = remember { GateRules.mathChallenge() }
+            var challenge by remember { mutableStateOf(GateRules.mathChallenge()) }
             var answer by remember { mutableStateOf("") }
             AlertDialog(
                 onDismissRequest = onDismiss,
                 title = { Text(stringResource(R.string.gate_math_title)) },
                 text = {
                     Column {
-                        Text(stringResource(R.string.gate_math_question, challenge.first))
+                        // The sum is always written left-to-right (also in Arabic), so "14 − 6" is never shown back to front.
+                        Text(
+                            stringResource(R.string.gate_math_question, "\u2066" + challenge.first + "\u2069"),
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = answer,
-                            onValueChange = { if (it.length <= 4 && it.all(Char::isDigit)) answer = it },
+                            onValueChange = { if (it.length <= 3 && it.all(Char::isDigit)) answer = it },
                             label = { Text(stringResource(R.string.gate_answer_hint)) },
                             singleLine = true,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
+                        TextButton(onClick = { challenge = GateRules.mathChallenge(); answer = "" }) {
+                            Text(stringResource(R.string.gate_new_question))
+                        }
                     }
                 },
                 confirmButton = {
@@ -217,6 +280,10 @@ fun SettingsDialog(
     var wifiOnly by remember { mutableStateOf(st.getOr(Keys.SYNC_WIFI_ONLY, false)) }
     var voice by remember { mutableStateOf(st.getOr(Keys.VOICE_OVER, true)) }
     var autoplay by remember { mutableStateOf(st.getOr(Keys.AUTOPLAY_NEXT, false)) }
+    var phoneLock by remember { mutableStateOf(st.getOr(Keys.PHONE_LOCK, true)) }
+    var phoneBioOnly by remember { mutableStateOf(st.getOr(Keys.PHONE_LOCK_BIO_ONLY, false)) }
+    val phoneAvailable = remember { PhoneLock.isAvailable(ctx, false) }
+    val phoneBioAvailable = remember { PhoneLock.isAvailable(ctx, true) }
 
     var driveAccount by remember { mutableStateOf(DriveAuth.accountEmail()) }
     var driveStatus by remember { mutableStateOf("") }
@@ -272,6 +339,8 @@ fun SettingsDialog(
                     p[Keys.catLimit(Policy.CAT_IMAGES)] = v.imagesLimit
                     p[Keys.SYNC_TIME] = v.syncTime
                     p[Keys.AUTOPLAY_NEXT] = autoplay
+                    p[Keys.PHONE_LOCK] = phoneLock
+                    p[Keys.PHONE_LOCK_BIO_ONLY] = phoneBioOnly
                     p[Keys.WEEKEND_ENABLED] = v.weekendEnabled
                     p[Keys.WEEKEND_LIMIT] = v.weekendLimit
                     p[Keys.WEEKEND_BED_START] = v.weekendBedStart
@@ -312,6 +381,18 @@ fun SettingsDialog(
                 Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
                     SectionTitle(R.string.settings_limit_label)
                     Field(limit, { limit = it }, R.string.settings_limit_hint, numeric = true)
+                    Row(
+                        Modifier.horizontalScroll(rememberScrollState()).padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        for (m in LIMIT_PRESETS) {
+                            FilterChip(
+                                selected = limit == m.toString(),
+                                onClick = { limit = m.toString() },
+                                label = { Text(stringResource(R.string.chip_minutes, m)) }
+                            )
+                        }
+                    }
 
                     SectionTitle(R.string.settings_bed_start)
                     Field(bedStart, { bedStart = it }, R.string.settings_time_hint)
@@ -503,6 +584,23 @@ fun SettingsDialog(
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = onQuizEditor, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.settings_quiz_edit))
+                    }
+
+                    SectionTitle(R.string.settings_phone_label)
+                    CheckRow(phoneLock, { phoneLock = it }, R.string.settings_phone_use)
+                    if (phoneLock) CheckRow(phoneBioOnly, { phoneBioOnly = it }, R.string.settings_phone_bio_only)
+                    val phoneHint = when {
+                        !phoneAvailable -> R.string.settings_phone_unavailable
+                        phoneLock && phoneBioOnly && !phoneBioAvailable -> R.string.settings_phone_no_bio
+                        else -> null
+                    }
+                    if (phoneHint != null) {
+                        Text(
+                            stringResource(phoneHint),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
                     }
 
                     SectionTitle(R.string.settings_pin_label)

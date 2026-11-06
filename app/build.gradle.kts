@@ -104,6 +104,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime)     // lifecycleScope, repeatOnLifecycle
     implementation(libs.androidx.lifecycle.viewmodel)   // ViewModel, AndroidViewModel, viewModelScope
     implementation(libs.androidx.viewpager2)            // vertical swiping pager (player screens)
+    implementation(libs.androidx.biometric)             // parent check with the phone lock (face, fingerprint, screen lock)
 
     // Jetpack Compose
     implementation(libs.compose.ui)

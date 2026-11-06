@@ -12,6 +12,8 @@
     <!-- Lets the parent exempt the app from battery optimisation so background sync is not killed
          mid-download (Samsung/Doze). Sync progress is shown in-app, so no notification permission. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- The parent check can use the phone lock (face, fingerprint, screen lock). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- allowBackup is off: the app stores the (hashed) parental PIN and limits in SharedPreferences,
          and the content is re-downloaded by sync anyway. HTTPS only: Drive and YouTube both use it. -->

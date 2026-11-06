@@ -467,10 +467,10 @@ if "CelebrationLayer(" not in rc or "DancingLogo(" not in rc:
     problems.append("the end-of-round screen must show the CelebrationLayer and the DancingLogo")
 for needle, what in (("activeBursts(", "fireworks"), ("starPoints(", "falling stars"), ("drawRect(", "confetti")):
     if needle not in cel: problems.append(f"CelebrationLayer lacks {what}")
-if "fun lockNow()" not in approot or "fun unlock(" not in approot or "btn_lock_now" not in src("ui/HomeScreen.kt"):
+if "fun lockNow(" not in approot or "fun unlock(" not in approot or "btn_lock_now" not in src("ui/HomeScreen.kt"):
     problems.append("the parent 'Lock now' button / HomeActions.lockNow / unlock are missing")
 main_act = src("MainActivity.kt")
-if "override fun lockNow()" not in main_act or "override fun unlock(" not in main_act:
+if "override fun lockNow(" not in main_act or "override fun unlock(" not in main_act:
     problems.append("MainActivity must implement lockNow() and unlock()")
 if "quizRoundsReached()" not in main_act or "recordQuizRound()" not in rc or "Keys.QUIZ_ROUNDS_LIMIT" not in src("ui/ParentFlows.kt"):
     problems.append("the daily quiz-round limit is not wired (MainActivity.openQuiz, QuizScreen.finishRound, Settings)")
@@ -548,6 +548,31 @@ else:
     if missing: problems.append(f"{len(missing)} file(s) are not in setup/files.txt, e.g. {missing[:3]}")
     if extra: problems.append(f"setup/files.txt lists {len(extra)} file(s) that do not exist, e.g. {extra[:3]}")
 check("setup/files.txt matches the files in the project", problems)
+
+# 18. Parent check with the phone lock, easy maths, timed lock
+problems = []
+flows = src("ui/ParentFlows.kt")
+if "PhoneLock.prompt(" not in flows or "GateRules.start(" not in flows:
+    problems.append("ParentGate must start with the phone-lock prompt (PhoneLock.prompt / GateRules.start)")
+if "GateRules.gateOpenForAttempts(" not in flows:
+    problems.append("a PIN / maths lockout must not shut the parent out of the phone lock (GateRules.gateOpenForAttempts)")
+for key in ("Keys.PHONE_LOCK]", "Keys.PHONE_LOCK_BIO_ONLY]"):
+    if flows.count(key) < 1: problems.append(f"Settings does not save {key}")
+pl = src("PhoneLock.kt")
+if "setAllowedAuthenticators(" not in pl or "setNegativeButtonText(" not in pl:
+    problems.append("PhoneLock.prompt: with biometric-only the prompt needs a negative button; without it, none (the phone throws otherwise)")
+if "DEVICE_CREDENTIAL" not in pl or "BIOMETRIC_WEAK" not in pl:
+    problems.append("PhoneLock must accept face/fingerprint (BIOMETRIC_WEAK) and the phone screen lock (DEVICE_CREDENTIAL)")
+if "androidx.biometric" not in read(os.path.join(ROOT, "gradle/libs.versions.toml")) or "libs.androidx.biometric" not in read(os.path.join(ROOT, "app/build.gradle.kts")):
+    problems.append("the androidx.biometric dependency is missing")
+if "USE_BIOMETRIC" not in manifest:
+    problems.append("AndroidManifest lacks the USE_BIOMETRIC permission")
+gr = src("GateRules.kt")
+if "random.nextInt(6, 13)" in gr or "×" in gr:
+    problems.append("the maths question must stay easy (no multiplication)")
+if "LockChoiceDialog(" not in approot or "Policy.lockNow(minutes)" not in main_act or "Policy.timedLockUntilMs()" not in main_act:
+    problems.append("'Lock now' must offer a duration and the home timer must look again when a timed lock ends")
+check("phone lock, easy maths, timed lock", problems)
 
 print()
 if failures:

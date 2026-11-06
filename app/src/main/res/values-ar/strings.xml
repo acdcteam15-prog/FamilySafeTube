@@ -40,6 +40,11 @@
     <string name="gate_wrong">❌ إجابة خاطئة (متبقي %1$d)</string>
     <string name="gate_locked">❌ خطأ. تم القفل لمدة %1$s.</string>
     <string name="gate_still_locked">🔒 محاولات كثيرة. حاول مرة أخرى بعد %1$s</string>
+    <string name="gate_choose_phone">👆  استخدام قفل الهاتف (الوجه / البصمة)</string>
+    <string name="gate_phone_title">تحقق ولي الأمر</string>
+    <string name="gate_phone_subtitle">أكّد أنك ولي الأمر</string>
+    <string name="gate_phone_other">طرق أخرى</string>
+    <string name="gate_new_question">سؤال آخر</string>
     <string name="wait_seconds">%1$d ث</string>
     <string name="wait_minutes">%1$d د</string>
     <string name="settings_title">⚙️  الإعدادات</string>
@@ -60,6 +65,12 @@
     <string name="settings_pin_label">🔐  الرمز السري لولي الأمر</string>
     <string name="settings_pin_set">🔑  تعيين رمز سري</string>
     <string name="settings_pin_change">🔑  تغيير / إزالة الرمز السري</string>
+    <string name="settings_phone_label">📱  قفل الهاتف</string>
+    <string name="settings_phone_use">استخدام قفل الهاتف (الوجه، البصمة) لإجراءات ولي الأمر</string>
+    <string name="settings_phone_bio_only">الوجه / البصمة فقط (بدون رمز الهاتف أو النمط)</string>
+    <string name="settings_phone_unavailable">لا يوجد قفل شاشة على هذا الهاتف بعد. فعّل واحدًا من إعدادات الهاتف لاستخدام هذا الخيار؛ وإلى ذلك الحين يُستخدم رمز التطبيق أو سؤال الحساب.</string>
+    <string name="settings_phone_no_bio">لم يتم إعداد وجه أو بصمة على هذا الهاتف بعد. وإلى ذلك الحين يُستخدم رمز التطبيق أو سؤال الحساب.</string>
+    <string name="chip_minutes">%1$d د</string>
     <string name="settings_actions">🛠  إجراءات</string>
     <string name="settings_clear_storage">🗑️  مسح التخزين المحلي</string>
     <string name="settings_view_dashboard">📊  عرض لوحة النشاط</string>
@@ -329,10 +340,13 @@
     <string name="drive_err_scope">لم يتم منح صلاحية Drive. سجّل الدخول من جديد واسمح بكل الصلاحيات المطلوبة.</string>
     <string name="drive_err_need_signin">سجّل الدخول أولاً</string>
     <!-- lock screen, quiz rounds per day -->
-    <string name="lock_description">مقفل. اضغط ثم أدخل رمز ولي الأمر.</string>
+    <string name="lock_description">مقفل. اضغط ثم استخدم قفل الهاتف أو رمز ولي الأمر.</string>
     <string name="lock_grant_title">إضافة وقت إضافي؟</string>
     <string name="lock_grant_option">‎+%1$d دقيقة</string>
     <string name="btn_lock_now">🔒 قفل الآن</string>
+    <string name="lock_choice_title">قفل التطبيق</string>
+    <string name="lock_choice_manual">حتى يفتحه ولي الأمر</string>
+    <string name="lock_choice_minutes">لمدة %1$d دقيقة</string>
     <string name="quiz_done_today">انتهى لهذا اليوم ⭐</string>
     <string name="quiz_done_today_toast">هذه كل جولات الاختبار لهذا اليوم. نراك غدًا!</string>
     <string name="quiz_last_round_today">كانت هذه آخر جولة لهذا اليوم. نراك غدًا!</string>

@@ -119,13 +119,25 @@ object Policy {
 
     /** Why the whole app should be covered by the lock screen right now (NONE = it should not be). */
     fun lockKind(c: Context): LockKind =
-        LockPolicy.kind(settings.getOr(Keys.MANUAL_LOCK, false), isBedtime(c), isGlobalLimitReached(c))
+        LockPolicy.kind(
+            LockPolicy.manualActive(settings.getOr(Keys.MANUAL_LOCK, false), timedLockUntilMs(), System.currentTimeMillis()),
+            isBedtime(c), isGlobalLimitReached(c)
+        )
+
+    /** When a running "lock for N minutes" ends (epoch ms), 0 = no timed lock. */
+    fun timedLockUntilMs(): Long = settings.getOr(Keys.LOCK_UNTIL, 0L)
 
     /** When a screen should look at the limits again: exactly when the time runs out, and at the latest in 10 seconds. */
     fun nextCheckDelayMs(c: Context, category: String?): Long = LockPolicy.nextCheckDelayMs(minutesLeft(c, category))
 
-    /** The parent pressed "Lock now". */
-    fun lockNow() = settings.edit { it[Keys.MANUAL_LOCK] = true }
+    /** The parent pressed "Lock now": [minutes] > 0 locks for that long, 0 locks until a parent opens it. */
+    fun lockNow(minutes: Int = 0) {
+        val until = LockPolicy.timedLockEnd(minutes, System.currentTimeMillis())
+        settings.edit {
+            it[Keys.MANUAL_LOCK] = minutes <= 0
+            it[Keys.LOCK_UNTIL] = until
+        }
+    }
 
     /**
      * The parent entered the PIN. A manual lock is simply opened; otherwise [minutes] are added (time up: to today's
@@ -139,7 +151,10 @@ object Policy {
         )
         if (grant.bonusMinutes > 0) usage.addBonus(grant.bonusMinutes)
         grant.bedtimeExtensionUntilMs?.let { until -> settings.edit { it[Keys.BEDTIME_EXTENSION_UNTIL] = until } }
-        if (kind == LockKind.MANUAL) settings.edit { it[Keys.MANUAL_LOCK] = false }
+        if (kind == LockKind.MANUAL) settings.edit {
+            it[Keys.MANUAL_LOCK] = false
+            it[Keys.LOCK_UNTIL] = 0L
+        }
     }
 
     // ── quiz rounds per day ───────────────────────────────────────────────

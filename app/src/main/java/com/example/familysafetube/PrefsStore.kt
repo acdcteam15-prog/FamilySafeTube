@@ -66,7 +66,10 @@ object Keys {
     val CELEB_EFFECT      = stringPreferencesKey("celeb_effect")           // cheer | fanfare | applause | sparkle | none
     val CELEB_CLIP_ANSWER = stringPreferencesKey("celeb_clip_answer")      // chosen recording for a right answer, "" = random
     val CELEB_CLIP_ROUND  = stringPreferencesKey("celeb_clip_round")       // chosen recording for the end of a round, "" = random
-    val MANUAL_LOCK       = booleanPreferencesKey("manual_lock")           // the parent pressed "Lock now"
+    val MANUAL_LOCK       = booleanPreferencesKey("manual_lock")           // the parent pressed "Lock now" (until a parent opens it)
+    val LOCK_UNTIL        = longPreferencesKey("manual_lock_until_ms")     // "Lock for 15 / 30 / 60 minutes": locked until then (0 = none)
+    val PHONE_LOCK        = booleanPreferencesKey("phone_lock_enabled")    // parent check with the phone lock (default on, when the phone has one)
+    val PHONE_LOCK_BIO_ONLY = booleanPreferencesKey("phone_lock_bio_only") // face / fingerprint only: do not accept the phone PIN or pattern
     val BEDTIME_EXTENSION_UNTIL = longPreferencesKey("bedtime_extension_until_ms")   // bedtime lifted by the parent until then
     val QUIZ_ROUNDS_LIMIT = intPreferencesKey("quiz_rounds_limit")         // finished quiz rounds allowed per day, 0 = no limit
     val QUIZ_DECKS        = stringPreferencesKey("quiz_decks")             // enabled built-in decks, e.g. "arletters,numbers"

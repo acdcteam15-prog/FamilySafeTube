@@ -40,6 +40,11 @@
     <string name="gate_wrong">❌ Wrong answer (%1$d left)</string>
     <string name="gate_locked">❌ Wrong. Locked for %1$s.</string>
     <string name="gate_still_locked">🔒 Too many attempts. Try again in %1$s</string>
+    <string name="gate_choose_phone">👆  Use phone lock (face / fingerprint)</string>
+    <string name="gate_phone_title">Parent check</string>
+    <string name="gate_phone_subtitle">Confirm that you are a parent</string>
+    <string name="gate_phone_other">Other ways</string>
+    <string name="gate_new_question">Another question</string>
     <string name="wait_seconds">%1$ds</string>
     <string name="wait_minutes">%1$d min</string>
     <string name="settings_title">⚙️  Settings</string>
@@ -60,6 +65,12 @@
     <string name="settings_pin_label">🔐  Parental PIN</string>
     <string name="settings_pin_set">🔑  Set Parental PIN</string>
     <string name="settings_pin_change">🔑  Change / Remove PIN</string>
+    <string name="settings_phone_label">📱  Phone lock</string>
+    <string name="settings_phone_use">Use the phone lock (face, fingerprint) for parent actions</string>
+    <string name="settings_phone_bio_only">Face / fingerprint only (not the phone PIN or pattern)</string>
+    <string name="settings_phone_unavailable">This phone has no screen lock yet. Set one in the phone Settings to use this; until then the app PIN or maths question is used.</string>
+    <string name="settings_phone_no_bio">No face or fingerprint is set up on this phone yet. Until then the app PIN or maths question is used.</string>
+    <string name="chip_minutes">%1$d min</string>
     <string name="settings_actions">🛠  Actions</string>
     <string name="settings_clear_storage">🗑️  Clear Offline Storage</string>
     <string name="settings_view_dashboard">📊  View Dashboard</string>
@@ -329,10 +340,13 @@ Tap \"Allow\" to let sync finish reliably in the background.</string>
     <string name="drive_err_scope">Drive access was not granted. Sign in again and allow every permission that is asked for.</string>
     <string name="drive_err_need_signin">Sign in first</string>
     <!-- lock screen, quiz rounds per day -->
-    <string name="lock_description">Locked. Tap, then enter the parent PIN.</string>
+    <string name="lock_description">Locked. Tap, then use the phone lock or the parent PIN.</string>
     <string name="lock_grant_title">Add extra time?</string>
     <string name="lock_grant_option">+%1$d minutes</string>
     <string name="btn_lock_now">🔒 Lock now</string>
+    <string name="lock_choice_title">Lock the app</string>
+    <string name="lock_choice_manual">Until a parent opens it</string>
+    <string name="lock_choice_minutes">For %1$d minutes</string>
     <string name="quiz_done_today">Done for today ⭐</string>
     <string name="quiz_done_today_toast">That is all the quiz rounds for today. See you tomorrow!</string>
     <string name="quiz_last_round_today">That was the last round for today. See you tomorrow!</string>

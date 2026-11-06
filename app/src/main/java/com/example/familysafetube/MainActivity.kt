@@ -48,7 +48,9 @@ class MainActivity : AppCompatActivity(), HomeActions {
             // look again exactly then. Otherwise (or when already locked) every 30 seconds is plenty.
             val left = Policy.minutesLeft(this@MainActivity, null)
             val locked = Policy.lockKind(this@MainActivity) != LockKind.NONE
-            val delay = if (locked || left * 60_000f > 30_000f) 30_000L else LockPolicy.nextCheckDelayMs(left)
+            val base = if (locked || left * 60_000f > 30_000f) 30_000L else LockPolicy.nextCheckDelayMs(left)
+            // a "lock for N minutes" should lift exactly when it ends
+            val delay = LockPolicy.delayWithTimedLock(base, Policy.timedLockUntilMs(), System.currentTimeMillis())
             tickHandler.postDelayed(this, delay)
         }
     }
@@ -207,13 +209,15 @@ class MainActivity : AppCompatActivity(), HomeActions {
 
     override fun settingsSaved() = viewModel.refresh()
 
-    /** "Lock now": the whole app is covered by the lock screen until the parent enters the PIN. */
-    override fun lockNow() {
-        Policy.lockNow()
+    /** "Lock now": the whole app is covered by the lock screen for [minutes], or until the parent opens it (0). */
+    override fun lockNow(minutes: Int) {
+        Policy.lockNow(minutes)
         viewModel.refresh()
+        tickHandler.removeCallbacks(liveTick)
+        tickHandler.postDelayed(liveTick, 1_000L)      // re-aim the timer at the end of a timed lock
     }
 
-    /** The PIN was entered on the lock screen: opens a manual lock, or adds [minutes] on a time-up / bedtime lock. */
+    /** The parent passed the check on the lock screen: opens a manual lock, or adds [minutes] on a time-up / bedtime lock. */
     override fun unlock(minutes: Int) {
         Policy.unlock(this, minutes)
         viewModel.refresh()
