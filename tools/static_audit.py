@@ -588,6 +588,23 @@ for need in ("onHear = {", "celebration.diacritics", "isTtsAvailable(quizLang)")
     if need not in src("ui/ParentFlows.kt"): problems.append(f"ParentFlows.kt (Settings) lacks '{need}'")
 check("celebration: Arabic with tashkeel, hear each phrase, voice check", problems)
 
+# 20. New picture categories from any Drive folder inside Offline/Images
+problems = []
+if "customFolders(kids)" not in src("DriveLayout.kt"): problems.append("DriveLayout.resolve must find the extra folders in Offline/Images")
+sw = src("SyncWorker.kt")
+if "ImageCategoryStore.updateAfterScan(" not in sw: problems.append("SyncWorker must register new categories after the scan")
+if 'listOf("videos", "animals", "letters", "veg&fruits", "other", "config")' in sw and "customIds()" not in sw:
+    problems.append("SyncWorker must own the new categories' files, not only the four fixed ones")
+if "ImageCategoryStore.rows(" not in src("ui/ParentFlows.kt"): problems.append("the category picker must list every category (ImageCategoryStore.rows)")
+if "RemovedFoldersSection()" not in src("ui/ParentFlows.kt"): problems.append("Settings must show the removed-folder questions")
+for need, where in (("ImageCategoryStore.quizIds()", "QuizRepository.kt"), ("ImageCategoryStore.load().allIds()", "MainViewModel.kt"), ("isQuizCategory(", "ImagePlayerActivity.kt")):
+    if need not in src(where): problems.append(f"{where} still uses a fixed category list ('{need}' missing)")
+for fixed in ('listOf("animals", "letters", "veg&fruits")', 'listOf("animals", "letters", "veg&fruits", "other")'):
+    for f in ("QuizRepository.kt", "MainViewModel.kt", "ImagePlayerActivity.kt", "ui/ParentFlows.kt"):
+        if fixed in src(f): problems.append(f"{f}: fixed category list {fixed}")
+if "Keys.IMAGE_BOOK" not in src("ImageCategoryStore.kt"): problems.append("the category book must be stored in Keys.IMAGE_BOOK")
+check("new picture categories from Drive folders", problems)
+
 print()
 if failures:
     print(f"{len(failures)} problem(s) found.")

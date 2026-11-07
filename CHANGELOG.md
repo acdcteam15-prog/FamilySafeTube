@@ -1,4 +1,4 @@
-# FamilySafeTube — changelog (phases 1–21)
+# FamilySafeTube — changelog (phases 1–22)
 
 Details per phase are in `docs/changes/`.
 
@@ -25,6 +25,7 @@ Details per phase are in `docs/changes/`.
 | 19 | Celebration voice, configurable | After every right answer and at the end of every round: a sound (cheer, fanfare, applause, sparkle) then a voice (your recordings or the phone voice with several phrases, optionally the child's name); phrases, voice style (pitch, speed), the recording to use and Test buttons in Settings > Celebration |
 | 20 | Phone lock for parents, easier maths, timed lock | The parent check (Settings, unlock, reset timer, updates) uses the phone's own lock: face, fingerprint or screen lock (optionally face / fingerprint only); the maths fallback is now one easy step ("7 + 5", "14 − 6") with an "Another question" button; "Lock now" can lock for 15 / 30 / 60 minutes and opens by itself; quick-pick buttons for the daily limit |
 | 21 | Arabic celebration with tashkeel | The phone voice now says the Arabic praise phrases with their vowel marks (أَحْسَنْتَ, بَرَافُو ...) so they are pronounced correctly; a switch in Settings > Celebration, a Boy / Girl choice for the Arabic wording, a Hear button beside every phrase, a tip for typing the child's name with marks, and a warning with a shortcut when the phone has no voice for the language |
+| 22 | New picture categories from Drive folders | Any folder you add inside Offline/Images is now a category, named like the folder, listed alphabetically (Other last) with its picture count, and its pictures are used by the quiz and the matching game. If you delete a folder in Drive the phone does not delete its pictures: Settings asks, per folder, to remove them or keep them |
 
 Tests: 86 JVM unit tests (time rules, schedule, PIN, lockout, navigation policy, usage repository, settings form,
 remote settings, JSON parser, quiz rules, wind-down).

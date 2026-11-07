@@ -46,7 +46,7 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         const val KEY_PROGRESS_TOTAL   = "progress_total"
         const val KEY_STATUS           = "status"   // "running" | "done" | "error"
 
-        /** Local file-name prefixes this worker owns. "config" lives in the "videos" Drive folder. */
+        /** Local file-name prefixes this worker always owns (the new picture categories are added from [CategoryBook]). "config" lives in the "videos" Drive folder. */
         private val OWNED_CATEGORIES = listOf("videos", "animals", "letters", "veg&fruits", "other", "config")
 
         // Prevents two workers (manual + scheduled) from racing on the same .tmp file.
@@ -179,6 +179,10 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         val scan = scanAllFolders()
         Log.d(TAG, "Drive scan: ${scan.files.size} files, failed folders=${scan.failedCategories}")
 
+        // New folders in Offline/Images become categories; a folder that vanished is NOT deleted here: the parent decides in Settings.
+        val newCategories = if (scan.imagesListed)
+            ImageCategoryStore.updateAfterScan(applicationContext, scan.customNames, scan.builtInsFound) else emptyList()
+
         val deleted = deleteRemovedFiles(scan)
         if (deleted > 0) broadcastComplete()
 
@@ -223,7 +227,8 @@ class SyncWorker(context: Context, params: WorkerParameters) :
             deleted > 0               -> str(R.string.sync_removed_only, deleted)
             else                      -> str(R.string.sync_uptodate)
         }
-        emitProgress(msg, total, total, status = "done")
+        val shown = if (newCategories.isEmpty()) msg else str(R.string.sync_new_categories, newCategories.joinToString()) + "\n" + msg
+        emitProgress(shown, total, total, status = "done")
         broadcastComplete()
 
         return scanProblems.isEmpty() && failed == 0
@@ -249,7 +254,8 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         val scannedCount = scan.files.groupingBy { it.category }.eachCount()
 
         val locals = applicationContext.filesDir.listFiles()?.toList() ?: return 0
-        val localCount = locals.groupingBy { categoryOfLocal(it.name) }.eachCount()
+        val owned = OWNED_CATEGORIES + ImageCategoryStore.load().customIds()
+        val localCount = locals.groupingBy { categoryOfLocal(it.name, owned) }.eachCount()
 
         fun mayDelete(cat: String): Boolean {
             if (cat == "config") {
@@ -265,7 +271,7 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         for (f in locals) {
             if (f.name.endsWith(".tmp") || f.name.startsWith("pref_")) continue
             if (f.name in expected) continue
-            val cat = categoryOfLocal(f.name) ?: continue   // not ours — leave it alone
+            val cat = categoryOfLocal(f.name, owned) ?: continue   // not ours — leave it alone
             if (!mayDelete(cat)) {
                 Log.w(TAG, "Not deleting ${f.name}: scan for '$cat' not trustworthy")
                 continue
@@ -276,8 +282,8 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         return n
     }
 
-    private fun categoryOfLocal(name: String): String? =
-        OWNED_CATEGORIES.firstOrNull { name.startsWith("${it}_") }
+    private fun categoryOfLocal(name: String, owned: List<String>): String? =
+        owned.firstOrNull { name.startsWith("${it}_") }
 
     // ── Change detection ─────────────────────────────────────────────────────
     private fun needsDownload(df: DriveFileInfo): Boolean {
@@ -315,7 +321,13 @@ class SyncWorker(context: Context, params: WorkerParameters) :
         val okCategories: Set<String>,
         val failedCategories: List<String>,
         /** Drive paths that do not exist in this user's Drive (permanent: the parent must create them). */
-        val missing: List<String>
+        val missing: List<String>,
+        /** New picture categories found in Offline/Images: id -> the folder's name in Drive. */
+        val customNames: Map<String, String> = emptyMap(),
+        /** Which built-in picture folders exist in Drive. */
+        val builtInsFound: Set<String> = emptySet(),
+        /** True when Offline/Images itself was found and listed (only then can a missing folder mean "removed"). */
+        val imagesListed: Boolean = false
     )
 
     private suspend fun scanAllFolders(): ScanResult {
@@ -345,7 +357,7 @@ class SyncWorker(context: Context, params: WorkerParameters) :
                 Log.e(TAG, "Scan failed for '$category': ${e.message}")
             }
         }
-        return ScanResult(files, ok, failed, missing)
+        return ScanResult(files, ok, failed, missing, layout.customNames(), layout.imageFolders.keys, layout.images != null)
     }
 
     /** Lists every file in a folder, following nextPageToken until the listing is complete. */

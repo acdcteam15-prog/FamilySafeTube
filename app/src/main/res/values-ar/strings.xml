@@ -93,6 +93,13 @@
     <string name="pin_saved">✅ تم حفظ الرمز</string>
     <string name="timer_reset_done">✅ تمت إعادة ضبط مؤقت اليوم</string>
     <string name="picker_title">اختر الفئة</string>
+    <string name="picker_row">%1$s (%2$d)</string>
+    <string name="removed_folders_title">مجلدات حُذفت من درايف</string>
+    <string name="removed_folders_hint">هذه المجلدات لم تعد في درايف، لكن صورها ما زالت على هذا الهاتف. اختر ما تريد لكل مجلد.</string>
+    <string name="removed_folder_row">%1$s: %2$d صورة</string>
+    <string name="removed_folder_remove">حذف من الهاتف</string>
+    <string name="removed_folder_keep">إبقاء</string>
+    <string name="sync_new_categories">فئة صور جديدة: %1$s</string>
     <string name="cat_animals">🦁  الحيوانات</string>
     <string name="cat_letters">🔤  الحروف</string>
     <string name="cat_veg">🥦  الخضار والفواكه</string>

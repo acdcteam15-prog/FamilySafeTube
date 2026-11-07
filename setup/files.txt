@@ -26,6 +26,8 @@ app/src/main/java/com/example/familysafetube/DriveLayout.kt
 app/src/main/java/com/example/familysafetube/FamilyPhotos.kt
 app/src/main/java/com/example/familysafetube/GateRules.kt
 app/src/main/java/com/example/familysafetube/ImageAdapter.kt
+app/src/main/java/com/example/familysafetube/ImageCategories.kt
+app/src/main/java/com/example/familysafetube/ImageCategoryStore.kt
 app/src/main/java/com/example/familysafetube/ImagePlayerActivity.kt
 app/src/main/java/com/example/familysafetube/Immersive.kt
 app/src/main/java/com/example/familysafetube/LockPolicy.kt
@@ -94,6 +96,7 @@ app/src/main/java/com/example/familysafetube/ui/QuizEditor.kt
 app/src/main/java/com/example/familysafetube/ui/QuizFamilyDialog.kt
 app/src/main/java/com/example/familysafetube/ui/QuizPraiseDialog.kt
 app/src/main/java/com/example/familysafetube/ui/QuizScreen.kt
+app/src/main/java/com/example/familysafetube/ui/RemovedFolders.kt
 app/src/main/java/com/example/familysafetube/ui/StickerAlbumDialog.kt
 app/src/main/java/com/example/familysafetube/ui/Theme.kt
 app/src/main/java/com/example/familysafetube/ui/UpdateBanner.kt
@@ -145,6 +148,7 @@ app/src/test/java/com/example/familysafetube/CelebrationTest.kt
 app/src/test/java/com/example/familysafetube/CelebrationVoiceTest.kt
 app/src/test/java/com/example/familysafetube/DriveLayoutTest.kt
 app/src/test/java/com/example/familysafetube/GateRulesTest.kt
+app/src/test/java/com/example/familysafetube/ImageCategoriesTest.kt
 app/src/test/java/com/example/familysafetube/LockPolicyTest.kt
 app/src/test/java/com/example/familysafetube/MiniJsonTest.kt
 app/src/test/java/com/example/familysafetube/NavigationPolicyTest.kt
@@ -191,6 +195,7 @@ docs/changes/CHANGES-phase19.md
 docs/changes/CHANGES-phase2.md
 docs/changes/CHANGES-phase20.md
 docs/changes/CHANGES-phase21.md
+docs/changes/CHANGES-phase22.md
 docs/changes/CHANGES-phase3.md
 docs/changes/CHANGES-phase4.md
 docs/changes/CHANGES-phase5.md

@@ -16,7 +16,6 @@ object QuizRepository {
     private const val AUDIO_DIR = "quiz_audio"
     private const val MAX_IMPORT_BYTES = 5L * 1024 * 1024
     private val PICTURE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
-    private val PICTURE_CATEGORIES = listOf("animals", "letters", "veg&fruits")
 
     // ── files ────────────────────────────────────────────────────────────────
     /** Recordings live in their own sub-folder, so sync's deletion pass (top-level files only) never touches them. */
@@ -32,7 +31,7 @@ object QuizRepository {
     }
 
     fun pictures(ctx: Context): List<File> =
-        PICTURE_CATEGORIES.flatMap { SyncEngine.getLocalFiles(ctx, it) }.filter {
+        ImageCategoryStore.quizIds().flatMap { SyncEngine.getLocalFiles(ctx, it) }.filter {
             it.extension.lowercase() in PICTURE_EXTENSIONS && !it.name.endsWith(".tmp") && it.length() > 1024L
         }
 

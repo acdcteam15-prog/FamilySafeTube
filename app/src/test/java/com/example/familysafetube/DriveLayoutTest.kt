@@ -102,4 +102,40 @@ class DriveLayoutTest {
         assertEquals(5, r.categoryIds().size)
         assertTrue(DriveLayout.resolve(d::list).missing().isEmpty())
     }
+
+    // ── new categories: any other folder inside Offline/Images ──
+    @Test fun anotherFolderInImages_becomesACategory() {
+        val d = full()
+        d.tree["img"]!!.add(Folder("b", "Birds"))
+        val r = DriveLayout.resolve(d::list)
+        assertEquals(mapOf("birds" to "b"), r.customFolders.mapValues { it.value.id })
+        assertEquals(mapOf("birds" to "Birds"), r.customNames())
+        assertEquals("b", r.categoryIds()["birds"])
+        assertTrue(r.missing().isEmpty())                       // a new folder never counts as "missing"
+    }
+
+    @Test fun theFourBuiltInFolders_areNeverNewCategories_evenWithDuplicatesOrOddCase() {
+        val d = full()
+        d.tree["img"]!!.add(Folder("a2", "animals ", "2030-01-01T00:00:00Z"))      // a duplicate of Animals
+        d.tree["img"]!!.add(Folder("v2", "VEG&FRUITS"))
+        assertTrue(DriveLayout.resolve(d::list).customFolders.isEmpty())
+    }
+
+    @Test fun twoFoldersWithTheSameId_theOldestWins_andUnusableNamesAreSkipped() {
+        val kids = listOf(
+            Folder("n", "Pets", "2026-05-01T00:00:00Z"), Folder("o", "pets ", "2026-01-01T00:00:00Z"),
+            Folder("v", "Videos"), Folder("c", "config"), Folder("e", "  "), Folder("u", "///")
+        )
+        val out = DriveLayout.customFolders(kids)
+        assertEquals(listOf("pets"), out.keys.toList())
+        assertEquals("o", out["pets"]?.id)                      // "videos" and "config" are reserved ids; blank / symbol-only names are skipped
+    }
+
+    @Test fun ensure_keepsTheNewCategories() {
+        val d = full()
+        d.tree["img"]!!.add(Folder("b", "Birds"))
+        val r = DriveLayout.ensure(d::list, d::create)
+        assertEquals(listOf("birds"), r.customFolders.keys.toList())
+        assertTrue(d.created.isEmpty())
+    }
 }

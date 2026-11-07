@@ -140,7 +140,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val yt = if (config.exists() && config.length() > 0)
             config.readText().lines().count { it.trim().isNotEmpty() } else 0
         val offline = SyncEngine.getLocalFiles(ctx, "videos").count { !it.name.endsWith(".txt") }
-        val images = listOf("animals", "letters", "veg&fruits", "other")
+        val images = ImageCategoryStore.load().allIds()       // the four built-in categories and every new one
             .sumOf { SyncEngine.getLocalFiles(ctx, it).size }
         val quizPlayable = QuizEngine.isPlayable(QuizRepository.loadCards(ctx))
         return Counts(yt, offline, images, quizPlayable)

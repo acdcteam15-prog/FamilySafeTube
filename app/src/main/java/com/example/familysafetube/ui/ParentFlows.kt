@@ -53,6 +53,7 @@ import com.example.familysafetube.GateMethod
 import com.example.familysafetube.GateRules
 import com.example.familysafetube.GateStart
 import com.example.familysafetube.Keys
+import com.example.familysafetube.ImageCategoryStore
 import com.example.familysafetube.PhoneLock
 import com.example.familysafetube.PinStore
 import com.example.familysafetube.DeckId
@@ -483,6 +484,8 @@ fun SettingsDialog(
                         modifier = Modifier.padding(top = 4.dp)
                     )
 
+                    RemovedFoldersSection()
+
                     SectionTitle(R.string.settings_sync_time)
                     Field(syncTime, { syncTime = it }, R.string.settings_time_hint)
 
@@ -777,20 +780,16 @@ fun ClearStorageDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 @Composable
 fun CategoryPickerDialog(onPick: (displayName: String, syncCategory: String) -> Unit, onDismiss: () -> Unit) {
     val ctx = LocalContext.current
-    val options = listOf(
-        R.string.cat_animals to "animals",
-        R.string.cat_letters to "letters",
-        R.string.cat_veg to "veg&fruits",
-        R.string.cat_other to "other"
-    )
+    // the four built-in categories and every folder the parent added in Drive, alphabetical with Other last, with picture counts
+    val rows = remember { ImageCategoryStore.rows(ctx) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.picker_title)) },
         text = {
-            Column {
-                options.forEach { (labelRes, category) ->
-                    TextButton(onClick = { onPick(ctx.getString(labelRes), category) }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(labelRes), fontSize = 17.sp)
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                rows.forEach { row ->
+                    TextButton(onClick = { onPick(row.name, row.id) }, enabled = row.count > 0, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.picker_row, row.name, row.count), fontSize = 17.sp)
                     }
                 }
             }

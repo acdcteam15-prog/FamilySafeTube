@@ -109,7 +109,7 @@ class ImagePlayerActivity : AppCompatActivity(),
         setContentView(root)
 
         // ── TTS (Arabic preferred) ────────────────────────────────────────
-        val isEducational = syncCategory.lowercase() in listOf("animals", "letters", "veg&fruits")
+        val isEducational = ImageCategories.isQuizCategory(syncCategory.lowercase())
         if (isEducational && AppGraph.settings.getOr(Keys.VOICE_OVER, true)) {
             tts = TextToSpeech(this, this)
         }
