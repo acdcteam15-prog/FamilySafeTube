@@ -1,7 +1,7 @@
 # Single place for every version. Dependabot (see .github/dependabot.yml) opens a PR whenever one is outdated.
 # Looked up in the official sources on 2026-11-01: developer.android.com (AGP, AndroidX), GitHub releases (the rest).
 [versions]
-agp = "9.5.0"            # needs Gradle 9.6.0 or newer (the wrapper has 9.8.2) and JDK 17+ (CI uses 21)
+agp = "9.5.1"            # needs Gradle 9.6.0 or newer (the wrapper has 9.8.2) and JDK 17+ (CI uses 21)
 kotlin = "2.4.21"        # AGP 9 compiles Kotlin itself; this version is used by the Compose compiler plugin
 core = "1.19.1"
 appcompat = "1.8.0"
